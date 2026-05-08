@@ -33,8 +33,9 @@ Apply the initial Supabase schema from `supabase/schema.sql`.
 - HTTP-only Firebase session cookie for server-side route protection
 - Supabase-backed profile onboarding
 - Protected class registration entry point
+- Protected admin dashboard with class creation, trainer assignment, post-test
+  toggle, and registered student viewer
 - Placeholder pre-test, waiting, and post-test pages
-- Placeholder admin dashboard and class creation page
 - Firebase client/admin helpers
 - Supabase browser/server/admin clients
 - Initial database schema and storage bucket definition
@@ -60,3 +61,22 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY----
 Firebase's client SDK sends the SMS OTP. After verification, the app exchanges
 the Firebase ID token for the `jba_session` HTTP-only cookie through
 `/api/auth/session`.
+
+## Admin Setup Notes
+
+Admin pages require a Firebase-authenticated user whose Supabase `users.role` is
+`admin`. After signing in once, update that user's role in Supabase:
+
+```sql
+update public.users
+set role = 'admin'
+where firebase_uid = '<firebase-user-uid>';
+```
+
+The admin dashboard currently supports:
+
+- Creating classes with manual or generated class codes
+- Viewing class status, student counts, and submission counts
+- Opening or closing post-test access per class
+- Adding/removing trainers, MCs, and partner team members per class
+- Viewing registered students for a class
