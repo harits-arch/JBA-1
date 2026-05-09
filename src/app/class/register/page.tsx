@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { StudentLogoutButton } from "@/components/auth/student-logout-button";
 import { ClassRegistrationForm } from "@/components/student/class-registration-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,19 +21,19 @@ export default async function ClassRegisterPage() {
   const registration = await getStudentCurrentRegistration(user.id);
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-10">
+    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md bg-white">
         {registration?.classes ? (
           <>
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle>You Are Registered</CardTitle>
+                  <CardTitle>Kamu Sudah Terdaftar</CardTitle>
                   <CardDescription>
-                    You are locked into this JBA class.
+                    Kamu sudah terhubung dengan kelas JBA ini.
                   </CardDescription>
                 </div>
-                <Badge variant="success">Active</Badge>
+                <Badge variant="success">Aktif</Badge>
               </div>
             </CardHeader>
             <CardContent className="space-y-5">
@@ -48,16 +49,16 @@ export default async function ClassRegisterPage() {
                 </p>
               </div>
               <Button asChild className="w-full">
-                <Link href="/pre-test">Continue to Pre-Test</Link>
+                <Link href="/student/dashboard">Kembali ke Dashboard</Link>
               </Button>
             </CardContent>
           </>
         ) : (
           <>
             <CardHeader>
-              <CardTitle>Enter Class Code</CardTitle>
+              <CardTitle>Masukkan Kode Kelas</CardTitle>
               <CardDescription>
-                Use the code provided by JBA or your employer.
+                Gunakan kode yang diberikan oleh JBA atau perusahaan kamu.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -66,6 +67,9 @@ export default async function ClassRegisterPage() {
           </>
         )}
       </Card>
+      <div className="mt-6">
+        <StudentLogoutButton />
+      </div>
     </main>
   );
 }

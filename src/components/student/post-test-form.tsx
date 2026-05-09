@@ -25,31 +25,29 @@ export function PostTestForm({
   trainers: Trainer[];
 }) {
   const [state, formAction] = useActionState(submitPostTestAction, initialState);
+  const values = state.values ?? {};
 
   return (
-    <form
-      action={formAction}
-      className="space-y-6"
-      encType="multipart/form-data"
-    >
+    <form action={formAction} className="space-y-6">
       <input type="hidden" name="classId" value={classId} />
 
       <QuestionSection
-        title="Upload AFTER Photo"
-        description="Upload your best final look after class. Use a clear face photo without filter."
+        title="Upload Foto AFTER"
+        description="Unggah tampilan akhir terbaik setelah kelas. Gunakan foto wajah yang jelas tanpa filter."
       >
         <input
           name="afterPhoto"
           type="file"
+          required
           accept="image/png,image/jpeg,image/webp"
           className="block w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
         />
-        <p className="text-xs text-muted-foreground">JPG, PNG, or WEBP. Max 5MB.</p>
+        <p className="text-xs text-muted-foreground">JPG, PNG, atau WEBP. Maksimal 5MB.</p>
       </QuestionSection>
 
       <QuestionSection
-        title="Trainer & Team Rating"
-        description="Rate every trainer or team member assigned to your class."
+        title="Rating Trainer & Tim"
+        description="Beri rating untuk setiap trainer atau anggota tim di kelas kamu."
       >
         <div className="space-y-4">
           {trainers.map((trainer) => (
@@ -61,7 +59,10 @@ export function PostTestForm({
                 <p className="font-semibold text-primary">{trainer.name}</p>
                 <p className="text-sm text-muted-foreground">{trainer.role}</p>
               </div>
-              <RatingGroup name={`trainerRating:${trainer.id}`} />
+              <RatingGroup
+                name={`trainerRating:${trainer.id}`}
+                selectedValue={getStringValue(values, `trainerRating:${trainer.id}`)}
+              />
             </div>
           ))}
         </div>
@@ -69,64 +70,71 @@ export function PostTestForm({
       </QuestionSection>
 
       <QuestionSection
-        title="Class Experience"
-        description="Your feedback helps JBA improve future corporate classes."
+        title="Pengalaman Kelas"
+        description="Feedback kamu membantu JBA meningkatkan kelas berikutnya."
       >
         <Textarea
           name="likedMost"
-          placeholder="What did you like most from this class?"
+          placeholder="Apa hal yang paling kamu suka dari kelas ini?"
+          defaultValue={getStringValue(values, "likedMost")}
         />
         <FieldError errors={state.fieldErrors?.likedMost} />
         <Textarea
           name="improvementFeedback"
-          placeholder="What can we improve for future classes?"
+          placeholder="Apa yang bisa kami tingkatkan untuk kelas berikutnya?"
+          defaultValue={getStringValue(values, "improvementFeedback")}
         />
         <FieldError errors={state.fieldErrors?.improvementFeedback} />
         <Textarea
           name="nextSteps"
-          placeholder="What will you do after following this class?"
+          placeholder="Apa yang akan kamu lakukan setelah mengikuti kelas ini?"
+          defaultValue={getStringValue(values, "nextSteps")}
         />
         <FieldError errors={state.fieldErrors?.nextSteps} />
       </QuestionSection>
 
       <QuestionSection
-        title="Recommendation"
-        description="Would you recommend this class to someone else?"
+        title="Rekomendasi"
+        description="Apakah kamu akan merekomendasikan kelas ini ke orang lain?"
       >
         <RadioGroup
           name="recommendation"
+          selectedValue={getStringValue(values, "recommendation")}
           options={[
-            { label: "Yes, definitely", value: "yes" },
-            { label: "Maybe", value: "maybe" },
-            { label: "No", value: "no" }
+            { label: "Ya, tentu", value: "yes" },
+            { label: "Mungkin", value: "maybe" },
+            { label: "Tidak", value: "no" }
           ]}
         />
         <FieldError errors={state.fieldErrors?.recommendation} />
         <Textarea
           name="recommendationTarget"
-          placeholder="If yes, who would you recommend this class to? (optional)"
+          placeholder="Jika ya, kepada siapa kamu akan merekomendasikan kelas ini? (opsional)"
+          defaultValue={getStringValue(values, "recommendationTarget")}
         />
       </QuestionSection>
 
       <QuestionSection
-        title="Testimonial & Consent"
-        description="Share a short testimonial and choose whether JBA may use it for branding."
+        title="Testimoni & Persetujuan"
+        description="Bagikan testimoni singkat dan pilih apakah JBA boleh menggunakannya untuk branding."
       >
         <Textarea
           name="testimonial"
-          placeholder="Write a short testimonial about your class experience."
+          placeholder="Tulis testimoni singkat tentang pengalaman kelas kamu."
+          defaultValue={getStringValue(values, "testimonial")}
         />
         <FieldError errors={state.fieldErrors?.testimonial} />
         <RadioGroup
           name="contentConsent"
+          selectedValue={getStringValue(values, "contentConsent")}
           options={[
             {
               label:
-                "Yes, JBA may use my photos and testimonial for promotion",
+                "Ya, JBA boleh menggunakan foto dan testimoni saya untuk promosi",
               value: "yes"
             },
             {
-              label: "No, please do not use my photos and testimonial",
+              label: "Tidak, mohon jangan gunakan foto dan testimoni saya",
               value: "no"
             }
           ]}
@@ -167,7 +175,13 @@ function QuestionSection({
   );
 }
 
-function RatingGroup({ name }: { name: string }) {
+function RatingGroup({
+  name,
+  selectedValue = ""
+}: {
+  name: string;
+  selectedValue?: string;
+}) {
   return (
     <div className="grid grid-cols-5 gap-2">
       {[1, 2, 3, 4, 5].map((rating) => (
@@ -179,6 +193,7 @@ function RatingGroup({ name }: { name: string }) {
             name={name}
             type="radio"
             value={rating}
+            defaultChecked={selectedValue === String(rating)}
             className="accent-primary"
           />
           {rating}
@@ -190,10 +205,12 @@ function RatingGroup({ name }: { name: string }) {
 
 function RadioGroup({
   name,
-  options
+  options,
+  selectedValue = ""
 }: {
   name: string;
   options: Array<{ label: string; value: string }>;
+  selectedValue?: string;
 }) {
   return (
     <div className="grid gap-2">
@@ -206,6 +223,7 @@ function RadioGroup({
             name={name}
             type="radio"
             value={option.value}
+            defaultChecked={selectedValue === option.value}
             className="accent-primary"
           />
           {option.label}
@@ -220,7 +238,7 @@ function SubmitButton() {
 
   return (
     <Button className="w-full" size="lg" disabled={pending}>
-      {pending ? "Submitting..." : "Submit Post-Test"}
+      {pending ? "Mengirim..." : "Kirim Post-Test"}
     </Button>
   );
 }
@@ -231,4 +249,13 @@ function FieldError({ errors }: { errors?: string[] }) {
   }
 
   return <p className="text-xs text-destructive">{errors[0]}</p>;
+}
+
+function getStringValue(
+  values: Record<string, string | string[]>,
+  key: string
+) {
+  const value = values[key];
+
+  return typeof value === "string" ? value : "";
 }

@@ -31,4 +31,5 @@ export type AdminFormState = {
   status: "idle" | "error" | "success";
   message?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
+  values?: Record<string, string>;
 };

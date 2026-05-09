@@ -13,7 +13,7 @@ export function DeleteTrainerButton({
       <input type="hidden" name="trainerId" value={trainerId} />
       <input type="hidden" name="classId" value={classId} />
       <Button size="sm" variant="ghost">
-        Remove
+        Hapus
       </Button>
     </form>
   );

@@ -11,10 +11,10 @@ import {
 } from "@/components/ui/card";
 
 const portalSteps = [
-  "Phone OTP login",
-  "Class code registration",
-  "Before photo and pre-test",
-  "Admin-triggered post-test"
+  "Masuk dengan OTP WhatsApp",
+  "Registrasi kode kelas",
+  "Foto before dan Pre-Test",
+  "Post-Test dibuka admin"
 ];
 
 export default function Home() {
@@ -28,10 +28,10 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-3">
             <Button asChild variant="ghost" size="sm">
-              <Link href="/admin">Admin</Link>
+              <Link href="/admin/login">Admin</Link>
             </Button>
             <Button asChild size="sm">
-              <Link href="/login">Student Login</Link>
+              <Link href="/login">Masuk Student</Link>
             </Button>
           </div>
         </nav>
@@ -40,34 +40,34 @@ export default function Home() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/50 bg-white/70 px-4 py-2 text-sm font-medium text-primary shadow-sm">
               <Sparkles className="h-4 w-4 text-accent" />
-              Professional grooming class operations
+              Operasional kelas grooming profesional
             </div>
             <div className="space-y-5">
               <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-primary sm:text-6xl">
-                A premium student portal for Jakarta Beauty Academy.
+                Portal student premium untuk Jakarta Beauty Academy.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                Register B2B participants, collect gender-specific pre-tests,
-                manage trainers, and open post-test feedback after the class.
+                Kelola peserta B2B, Pre-Test sesuai gender, trainer, dan
+                feedback Post-Test setelah kelas selesai.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button asChild size="lg">
                 <Link href="/login">
-                  Start Student Flow <ArrowRight className="h-4 w-4" />
+                  Mulai sebagai Student <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="secondary" size="lg">
-                <Link href="/admin">Open Admin Dashboard</Link>
+                <Link href="/admin/login">Buka Dashboard Admin</Link>
               </Button>
             </div>
           </div>
 
           <Card className="bg-white/85 backdrop-blur">
             <CardHeader>
-              <CardTitle>Event Flow</CardTitle>
+              <CardTitle>Alur Kelas</CardTitle>
               <CardDescription>
-                Designed for mobile use during live JBA classes.
+                Dirancang mobile-first untuk kelas JBA secara langsung.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -83,8 +83,8 @@ export default function Home() {
               <div className="rounded-2xl bg-primary p-5 text-primary-foreground">
                 <ShieldCheck className="mb-3 h-6 w-6 text-accent" />
                 <p className="text-sm leading-6">
-                  Before and after photos are stored privately and exposed to
-                  admins through signed URLs only.
+                  Foto before dan after tersimpan privat dan hanya dibuka untuk
+                  admin melalui signed URL.
                 </p>
               </div>
             </CardContent>

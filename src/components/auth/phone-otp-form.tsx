@@ -1,178 +1,215 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  type ConfirmationResult,
-  RecaptchaVerifier,
-  signInWithPhoneNumber
-} from "firebase/auth";
+import { useState } from "react";
+import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { firebaseAuth } from "@/lib/firebase/client";
+import {
+  passwordLoginAction,
+  sendRegistrationOtpAction,
+  verifyOtpAndCreatePasswordAction,
+  type AuthFormState
+} from "@/lib/auth/login-actions";
 
-type AuthSessionResponse = {
-  nextPath?: string;
-  error?: string;
+const initialState: AuthFormState = {
+  status: "idle"
 };
 
 export function PhoneOtpForm() {
-  const router = useRouter();
-  const confirmationResult = useRef<ConfirmationResult | null>(null);
-  const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  function getRecaptchaVerifier() {
-    if (!recaptchaVerifier.current) {
-      recaptchaVerifier.current = new RecaptchaVerifier(
-        firebaseAuth,
-        "recaptcha-container",
-        {
-          size: "invisible"
-        }
-      );
-    }
-
-    return recaptchaVerifier.current;
-  }
-
-  async function handleSendOtp() {
-    setIsLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      confirmationResult.current = await signInWithPhoneNumber(
-        firebaseAuth,
-        phone.trim(),
-        getRecaptchaVerifier()
-      );
-      setStep("otp");
-      setMessage("OTP sent. Please check your SMS or WhatsApp-linked phone.");
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Unable to send OTP. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  async function handleVerifyOtp() {
-    if (!confirmationResult.current) {
-      setError("Please request an OTP first.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const credential = await confirmationResult.current.confirm(otp.trim());
-      const idToken = await credential.user.getIdToken();
-      const response = await fetch("/api/auth/session", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ idToken })
-      });
-      const payload = (await response.json()) as AuthSessionResponse;
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to create app session.");
-      }
-
-      router.replace(payload.nextPath ?? "/onboarding");
-      router.refresh();
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error
-          ? caughtError.message
-          : "Invalid OTP. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [otpState, sendOtpAction] = useActionState(
+    sendRegistrationOtpAction,
+    initialState
+  );
+  const [verifyState, verifyAction] = useActionState(
+    verifyOtpAndCreatePasswordAction,
+    initialState
+  );
+  const [loginState, loginAction] = useActionState(
+    passwordLoginAction,
+    initialState
+  );
+  const activeRegisterState =
+    verifyState.message || verifyState.status !== "idle" ? verifyState : otpState;
 
   return (
     <div className="space-y-5">
-      <div id="recaptcha-container" />
+      <div className="grid grid-cols-2 rounded-full bg-muted p-1">
+        <button
+          type="button"
+          className={
+            mode === "login"
+              ? "rounded-full bg-white px-4 py-2 text-sm font-semibold text-primary"
+              : "px-4 py-2 text-sm font-semibold text-muted-foreground"
+          }
+          onClick={() => setMode("login")}
+        >
+          Masuk
+        </button>
+        <button
+          type="button"
+          className={
+            mode === "register"
+              ? "rounded-full bg-white px-4 py-2 text-sm font-semibold text-primary"
+              : "px-4 py-2 text-sm font-semibold text-muted-foreground"
+          }
+          onClick={() => setMode("register")}
+        >
+          Daftar
+        </button>
+      </div>
 
-      {step === "phone" ? (
-        <>
+      {mode === "login" ? (
+        <form action={loginAction} className="space-y-5">
+          <PhoneField
+            id="login-phone"
+            defaultValue={loginState.values?.phone ?? ""}
+          />
           <div className="space-y-2">
-            <Label htmlFor="phone">WhatsApp / Phone Number</Label>
+            <Label htmlFor="login-password">Password</Label>
             <Input
-              id="phone"
-              placeholder="+62 812 3456 7890"
-              inputMode="tel"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
+              id="login-password"
+              name="password"
+              type="password"
+              placeholder="Password kamu"
+              autoComplete="current-password"
+              defaultValue={loginState.values?.password ?? ""}
             />
-            <p className="text-xs leading-5 text-muted-foreground">
-              Use international format, for example +6281234567890.
-            </p>
           </div>
-          <Button
-            className="w-full"
-            disabled={isLoading || phone.trim().length < 8}
-            onClick={handleSendOtp}
-          >
-            {isLoading ? "Sending..." : "Send OTP"}
-          </Button>
-        </>
+          <FormMessage state={loginState} />
+          <SubmitButton label="Masuk" pendingLabel="Sedang masuk..." />
+        </form>
       ) : (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="otp">Verification Code</Label>
-            <Input
-              id="otp"
-              placeholder="6-digit OTP"
-              inputMode="numeric"
-              value={otp}
-              onChange={(event) => setOtp(event.target.value)}
-            />
-          </div>
-          <Button
-            className="w-full"
-            disabled={isLoading || otp.trim().length < 4}
-            onClick={handleVerifyOtp}
-          >
-            {isLoading ? "Verifying..." : "Verify and Continue"}
-          </Button>
-          <Button
-            className="w-full"
-            disabled={isLoading}
-            variant="ghost"
-            onClick={() => setStep("phone")}
-          >
-            Change Phone Number
-          </Button>
-        </>
+        <div className="space-y-5">
+          {otpState.status === "otp-sent" ? (
+            <form action={verifyAction} className="space-y-5">
+              <input type="hidden" name="phone" value={otpState.phone} />
+              <div className="rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
+                OTP dikirim ke {otpState.phone}. Buat password untuk login
+                berikutnya tanpa OTP.
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-otp">Kode OTP</Label>
+                <Input
+                  id="register-otp"
+                  name="otp"
+                  placeholder="6 digit OTP"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  defaultValue={verifyState.values?.otp ?? ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-password">Password Baru</Label>
+                <Input
+                  id="register-password"
+                  name="password"
+                  type="password"
+                  placeholder="Minimal 8 karakter"
+                  autoComplete="new-password"
+                  defaultValue={verifyState.values?.password ?? ""}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-confirm-password">
+                  Konfirmasi Password
+                </Label>
+                <Input
+                  id="register-confirm-password"
+                  name="confirmPassword"
+                  type="password"
+                  placeholder="Ulangi password"
+                  autoComplete="new-password"
+                  defaultValue={verifyState.values?.confirmPassword ?? ""}
+                />
+              </div>
+              <FormMessage state={activeRegisterState} />
+              <SubmitButton
+                label="Verifikasi OTP & Buat Password"
+                pendingLabel="Memverifikasi..."
+              />
+            </form>
+          ) : (
+            <form action={sendOtpAction} className="space-y-5">
+              <PhoneField
+                id="register-phone"
+                defaultValue={activeRegisterState.values?.phone ?? ""}
+              />
+              <p className="text-xs leading-5 text-muted-foreground">
+                OTP hanya dipakai untuk verifikasi awal. Setelah itu login cukup
+                pakai nomor WhatsApp dan password.
+              </p>
+              <FormMessage state={activeRegisterState} />
+              <SubmitButton
+                label="Kirim OTP via WhatsApp"
+                pendingLabel="Mengirim..."
+              />
+            </form>
+          )}
+        </div>
       )}
-
-      {message ? (
-        <p className="rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-          {message}
-        </p>
-      ) : null}
-      {error ? (
-        <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
     </div>
+  );
+}
+
+function PhoneField({
+  id,
+  defaultValue = ""
+}: {
+  id: string;
+  defaultValue?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>Nomor WhatsApp</Label>
+      <Input
+        id={id}
+        name="phone"
+        placeholder="0812 3456 7890"
+        inputMode="tel"
+        autoComplete="tel"
+        defaultValue={defaultValue}
+      />
+      <p className="text-xs leading-5 text-muted-foreground">
+        Bisa pakai 0812..., 62812..., atau +62812....
+      </p>
+    </div>
+  );
+}
+
+function SubmitButton({
+  label,
+  pendingLabel
+}: {
+  label: string;
+  pendingLabel: string;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button className="w-full" disabled={pending}>
+      {pending ? pendingLabel : label}
+    </Button>
+  );
+}
+
+function FormMessage({ state }: { state: AuthFormState }) {
+  if (!state.message) {
+    return null;
+  }
+
+  return (
+    <p
+      className={
+        state.status === "error"
+          ? "rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          : "rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground"
+      }
+    >
+      {state.message}
+    </p>
   );
 }

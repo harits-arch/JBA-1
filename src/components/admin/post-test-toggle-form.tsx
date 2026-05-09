@@ -17,7 +17,7 @@ export function PostTestToggleForm({
         value={postTestOpen ? "false" : "true"}
       />
       <Button variant={postTestOpen ? "secondary" : "default"}>
-        {postTestOpen ? "Close Post-Test Access" : "Open Post-Test Access"}
+        {postTestOpen ? "Tutup Akses Post-Test" : "Buka Akses Post-Test"}
       </Button>
     </form>
   );

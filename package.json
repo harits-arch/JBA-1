@@ -18,8 +18,6 @@
     "@supabase/supabase-js": "latest",
     "class-variance-authority": "latest",
     "clsx": "latest",
-    "firebase": "latest",
-    "firebase-admin": "latest",
     "lucide-react": "latest",
     "next": "latest",
     "react": "latest",

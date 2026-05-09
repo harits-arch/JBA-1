@@ -45,11 +45,11 @@ export default async function ClassSubmissionsPage({
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button asChild variant="ghost">
-            <Link href={`/admin/classes/${classData.id}`}>Back to Class</Link>
+            <Link href={`/admin/classes/${classData.id}`}>Kembali ke Kelas</Link>
           </Button>
           <Button asChild variant="secondary">
             <Link href={`/admin/classes/${classData.id}/students`}>
-              View Students
+              Lihat Student
             </Link>
           </Button>
         </div>
@@ -65,7 +65,7 @@ export default async function ClassSubmissionsPage({
             <Metric label="Pre-Tests" value={submissions.preTests.length} />
             <Metric label="Post-Tests" value={submissions.postTests.length} />
             <Metric
-              label="Pending Post-Test"
+              label="Belum Post-Test"
               value={Math.max(
                 submissions.preTests.length - submissions.postTests.length,
                 0
@@ -76,9 +76,9 @@ export default async function ClassSubmissionsPage({
 
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Pre-Test Results</CardTitle>
+            <CardTitle>Hasil Pre-Test</CardTitle>
             <CardDescription>
-              Includes gender-specific answers and BEFORE photo links.
+              Termasuk jawaban sesuai gender dan link foto BEFORE.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -95,44 +95,43 @@ export default async function ClassSubmissionsPage({
                     gender={submission.gender}
                   />
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Info label="Frequency" value={submission.grooming_frequency} />
+                    <Info label="Frekuensi" value={submission.grooming_frequency} />
                     <Info
-                      label="Obstacles"
+                      label="Kendala"
                       value={submission.obstacles?.join(", ")}
                     />
                     <Info
-                      label="Activities / Habits"
+                      label="Aktivitas / Kebiasaan"
                       value={
                         submission.gender === "female"
                           ? submission.female_activities?.join(", ")
                           : submission.male_habits?.join(", ")
                       }
                     />
-                    <Info label="Skin Type" value={submission.male_skin_type} />
+                    <Info label="Kondisi Kulit" value={submission.male_skin_type} />
                   </div>
-                  <LongInfo label="Expectations" value={submission.expectations} />
+                  <LongInfo label="Ekspektasi" value={submission.expectations} />
                   <LongInfo
-                    label="Obstacle Explanation"
+                    label="Penjelasan Kendala"
                     value={submission.obstacle_explanation}
                   />
                   <PhotoButton
                     href={beforePhotoUrls[index]}
-                    label="Download BEFORE Photo"
+                    label="Unduh Foto BEFORE"
                   />
                 </div>
               ))
             ) : (
-              <EmptyState label="No pre-test submissions yet." />
+              <EmptyState label="Belum ada submission Pre-Test." />
             )}
           </CardContent>
         </Card>
 
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Post-Test Results</CardTitle>
+            <CardTitle>Hasil Post-Test</CardTitle>
             <CardDescription>
-              Includes trainer ratings, feedback, consent, and AFTER photo
-              links.
+              Termasuk rating trainer, feedback, persetujuan, dan link foto AFTER.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -149,26 +148,26 @@ export default async function ClassSubmissionsPage({
                     gender={submission.users?.gender}
                   />
                   <div className="grid gap-3 md:grid-cols-2">
-                    <Info label="Recommendation" value={submission.recommendation} />
+                    <Info label="Rekomendasi" value={submission.recommendation} />
                     <Info
-                      label="Recommend To"
+                      label="Direkomendasikan Untuk"
                       value={submission.recommendation_target}
                     />
                     <Info
-                      label="Content Consent"
-                      value={submission.content_consent ? "Yes" : "No"}
+                      label="Persetujuan Konten"
+                      value={submission.content_consent ? "Ya" : "Tidak"}
                     />
                   </div>
-                  <LongInfo label="Liked Most" value={submission.liked_most} />
+                  <LongInfo label="Paling Disukai" value={submission.liked_most} />
                   <LongInfo
-                    label="Improvement Feedback"
+                    label="Feedback Perbaikan"
                     value={submission.improvement_feedback}
                   />
-                  <LongInfo label="Next Steps" value={submission.next_steps} />
-                  <LongInfo label="Testimonial" value={submission.testimonial} />
+                  <LongInfo label="Langkah Berikutnya" value={submission.next_steps} />
+                  <LongInfo label="Testimoni" value={submission.testimonial} />
                   <div className="grid gap-2">
                     <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Trainer Ratings
+                      Rating Trainer
                     </p>
                     {submission.trainer_ratings.length > 0 ? (
                       submission.trainer_ratings.map((rating) => (
@@ -189,18 +188,18 @@ export default async function ClassSubmissionsPage({
                       ))
                     ) : (
                       <p className="text-sm text-muted-foreground">
-                        No trainer ratings recorded.
+                        Belum ada rating trainer.
                       </p>
                     )}
                   </div>
                   <PhotoButton
                     href={afterPhotoUrls[index]}
-                    label="Download AFTER Photo"
+                    label="Unduh Foto AFTER"
                   />
                 </div>
               ))
             ) : (
-              <EmptyState label="No post-test submissions yet." />
+              <EmptyState label="Belum ada submission Post-Test." />
             )}
           </CardContent>
         </Card>
@@ -232,9 +231,9 @@ function SubmissionHeader({
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p className="font-semibold text-primary">{name ?? "Unnamed Student"}</p>
-        <p className="text-sm text-muted-foreground">{phone ?? "No phone"}</p>
-        <p className="text-xs text-muted-foreground">Submitted {submittedAt}</p>
+        <p className="font-semibold text-primary">{name ?? "Student Tanpa Nama"}</p>
+        <p className="text-sm text-muted-foreground">{phone ?? "Tidak ada nomor"}</p>
+        <p className="text-xs text-muted-foreground">Dikirim {submittedAt}</p>
       </div>
       {gender ? <Badge variant="outline">{gender}</Badge> : null}
     </div>

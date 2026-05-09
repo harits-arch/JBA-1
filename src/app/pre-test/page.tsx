@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { StudentLogoutButton } from "@/components/auth/student-logout-button";
 import { PreTestForm } from "@/components/student/pre-test-form";
 import {
   Card,
@@ -26,7 +27,7 @@ export default async function PreTestPage() {
   const registration = await getStudentCurrentRegistration(user.id);
 
   if (!registration?.classes) {
-    redirect("/class/register");
+    redirect("/student/dashboard");
   }
 
   const existingSubmission = await getStudentPreTestSubmission(
@@ -35,7 +36,7 @@ export default async function PreTestPage() {
   );
 
   if (existingSubmission) {
-    redirect("/waiting");
+    redirect("/student/dashboard");
   }
 
   return (
@@ -52,6 +53,9 @@ export default async function PreTestPage() {
           <PreTestForm classId={registration.class_id} gender={user.gender} />
         </CardContent>
       </Card>
+      <div className="mx-auto mt-6 flex max-w-3xl justify-center">
+        <StudentLogoutButton />
+      </div>
     </main>
   );
 }

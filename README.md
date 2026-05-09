@@ -6,7 +6,8 @@ Digital student portal for Jakarta Beauty Academy B2B grooming classes.
 
 - Next.js App Router with TypeScript
 - Tailwind CSS and shadcn/ui-style components
-- Firebase Phone Auth for student OTP
+- Fonnte WhatsApp OTP for first registration
+- Phone number + password login after verification
 - Supabase PostgreSQL and private Storage for class data and before/after photos
 
 ## Local Setup
@@ -18,7 +19,7 @@ npm install
 npm run dev
 ```
 
-Copy the environment template and fill in Firebase and Supabase credentials:
+Copy the environment template and fill in Fonnte and Supabase credentials:
 
 ```bash
 cp .env.example .env.local
@@ -29,51 +30,45 @@ Apply the initial Supabase schema from `supabase/schema.sql`.
 ## Current Scaffold
 
 - Branded landing page
-- Firebase Phone OTP student login
-- HTTP-only Firebase session cookie for server-side route protection
+- Fonnte WhatsApp OTP registration and password login
+- HTTP-only signed session cookie for server-side route protection
 - Supabase-backed profile onboarding
 - Protected class registration with class-code locking
 - Gender-specific pre-test forms with private BEFORE photo uploads
-- Protected admin dashboard with class creation, trainer assignment, post-test
-  toggle, registered student viewer, and submission viewer
+- Separate admin login at `/admin/login` with class creation, trainer
+  assignment, post-test toggle, registered student viewer, and submission
+  viewer
 - Waiting area after pre-test submission
 - Post-test form with AFTER photo upload, dynamic trainer ratings, feedback,
   recommendation, testimonial, and content consent
-- Firebase client/admin helpers
 - Supabase browser/server/admin clients
 - Initial database schema and storage bucket definition
 
-## Firebase Phone Auth Notes
+## Fonnte OTP Auth Notes
 
-Enable Phone authentication in the Firebase console, then add your local and
-production domains to Firebase Authentication's authorized domains.
+Students use OTP only during first registration. After OTP verification, they
+create a password and can log in with phone + password without spending another
+OTP.
 
 For local development, fill these values in `.env.local`:
 
 ```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-FIREBASE_PROJECT_ID=
-FIREBASE_CLIENT_EMAIL=
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+AUTH_SECRET=
+FONNTE_TOKEN=
+FONNTE_BASE_URL=https://api.fonnte.com
 ```
 
-Firebase's client SDK sends the SMS OTP. After verification, the app exchanges
-the Firebase ID token for the `jba_session` HTTP-only cookie through
-`/api/auth/session`.
+`AUTH_SECRET` should be a long random string. `FONNTE_TOKEN` comes from the
+Fonnte dashboard API token page.
 
 ## Admin Setup Notes
 
-Admin pages require a Firebase-authenticated user whose Supabase `users.role` is
-`admin`. After signing in once, update that user's role in Supabase:
+Admin pages use a separate login from students:
 
-```sql
-update public.users
-set role = 'admin'
-where firebase_uid = '<firebase-user-uid>';
+```text
+URL: /admin/login
+Username: admin
+Password: 2026
 ```
 
 The admin dashboard currently supports:
@@ -88,9 +83,10 @@ The admin dashboard currently supports:
 
 ## Student Flow Notes
 
-Students must complete phone OTP login and onboarding before class
-registration. The class registration page accepts active/draft `class_code`
-values from Supabase and locks the student into their first class registration.
+Students must register with WhatsApp OTP, create a password, and complete
+onboarding before class registration. The class registration page accepts
+active/draft `class_code` values from Supabase and locks the student into their
+first class registration.
 
 The pre-test page renders fields from the student's `users.gender`:
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { StudentLogoutButton } from "@/components/auth/student-logout-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,7 +24,7 @@ export default async function WaitingPage() {
   const registration = await getStudentCurrentRegistration(user.id);
 
   if (!registration?.classes) {
-    redirect("/class/register");
+    redirect("/student/dashboard");
   }
 
   const existingSubmission = await getStudentPreTestSubmission(
@@ -42,39 +43,44 @@ export default async function WaitingPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
-      <Card className="w-full max-w-lg bg-white text-center">
+      <div className="w-full max-w-lg">
+      <Card className="w-full bg-white text-center">
         <CardHeader>
-          <CardTitle>Enjoy Your Class</CardTitle>
+          <CardTitle>Selamat Mengikuti Kelas</CardTitle>
           <CardDescription>
-            Your pre-test for {registration.classes.client_name} has been
-            received.
+            Pre-Test kamu untuk {registration.classes.client_name} sudah
+            diterima.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-2xl border bg-background p-4">
             <p className="text-sm text-muted-foreground">
               {postTestSubmission
-                ? "Your post-test has been submitted. Thank you for your feedback."
+                ? "Post-Test kamu sudah terkirim. Terima kasih atas feedback kamu."
                 : registration.classes.post_test_open
-                ? "The JBA team has opened post-test access."
-                : "The post-test will be available after the session ends."}
+                ? "Tim JBA sudah membuka akses Post-Test."
+                : "Post-Test akan tersedia setelah sesi kelas selesai."}
             </p>
           </div>
           {postTestSubmission ? (
             <Button asChild className="w-full" variant="secondary">
-              <Link href="/post-test">View Submission Status</Link>
+              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
             </Button>
           ) : registration.classes.post_test_open ? (
             <Button asChild className="w-full">
-              <Link href="/post-test">Start Post-Test</Link>
+              <Link href="/post-test">Mulai Post-Test</Link>
             </Button>
           ) : (
             <Button asChild className="w-full" variant="secondary">
-              <Link href="/post-test">Check Post-Test</Link>
+              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
             </Button>
           )}
         </CardContent>
       </Card>
+        <div className="mt-6 flex justify-center">
+          <StudentLogoutButton />
+        </div>
+      </div>
     </main>
   );
 }

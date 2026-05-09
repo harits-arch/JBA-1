@@ -4,25 +4,35 @@ export type StudentFormState = {
   status: "idle" | "error" | "success";
   message?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
+  values?: Record<string, string | string[]>;
 };
 
 export const classRegistrationSchema = z.object({
   classCode: z
     .string()
     .trim()
-    .min(3, "Class code is required.")
+    .min(3, "Kode kelas wajib diisi.")
     .transform((value) => value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase())
 });
 
+const requiredText = (message: string) =>
+  z.preprocess(
+    (value) => (value === null ? "" : value),
+    z.string().trim().min(1, message)
+  );
+
+const requiredLongText = (message: string) =>
+  z.preprocess(
+    (value) => (value === null ? "" : value),
+    z.string().trim().min(5, message)
+  );
+
 const basePreTestSchema = z.object({
   classId: z.string().uuid(),
-  groomingFrequency: z.string().min(1, "Please choose a grooming frequency."),
-  expectations: z.string().trim().min(5, "Please share your expectations."),
-  obstacles: z.array(z.string()).min(1, "Please select at least one obstacle."),
-  obstacleExplanation: z
-    .string()
-    .trim()
-    .min(5, "Please describe your biggest obstacle."),
+  groomingFrequency: requiredText("Pilih frekuensi grooming kamu."),
+  expectations: requiredLongText("Ceritakan ekspektasi kamu."),
+  obstacles: z.array(z.string()).min(1, "Pilih minimal satu kendala."),
+  obstacleExplanation: requiredLongText("Jelaskan kendala terbesar kamu."),
   commitments: z.array(z.string())
 });
 
@@ -30,30 +40,35 @@ export const femalePreTestSchema = basePreTestSchema.extend({
   gender: z.literal("female"),
   femaleActivities: z
     .array(z.string())
-    .min(1, "Please choose at least one grooming activity.")
+    .min(1, "Pilih minimal satu aktivitas grooming.")
 });
 
 export const malePreTestSchema = basePreTestSchema.extend({
   gender: z.literal("male"),
   maleHabits: z
     .array(z.string())
-    .min(1, "Please choose at least one grooming habit."),
-  maleSkinType: z.string().min(1, "Please choose your skin type."),
-  maleSocialMediaWilling: z.enum(["yes", "no"]),
-  maleUploadTimeline: z.string().min(1, "Please choose an upload timeline.")
+    .min(1, "Pilih minimal satu kebiasaan grooming."),
+  maleSkinType: requiredText("Pilih kondisi kulit kamu."),
+  maleSocialMediaWilling: z.preprocess(
+    (value) => (value === null ? "" : value),
+    z.enum(["yes", "no"], {
+      message: "Pilih kesediaan untuk posting di media sosial."
+    })
+  ),
+  maleUploadTimeline: requiredText("Pilih timeline upload.")
 });
 
 export const postTestSchema = z.object({
   classId: z.string().uuid(),
-  likedMost: z.string().trim().min(5, "Please share what you liked most."),
+  likedMost: z.string().trim().min(5, "Ceritakan hal yang paling kamu suka."),
   improvementFeedback: z
     .string()
     .trim()
-    .min(5, "Please share what JBA can improve."),
-  nextSteps: z.string().trim().min(5, "Please share your next steps."),
+    .min(5, "Ceritakan hal yang bisa JBA tingkatkan."),
+  nextSteps: z.string().trim().min(5, "Ceritakan langkah kamu berikutnya."),
   recommendation: z.enum(["yes", "maybe", "no"]),
   recommendationTarget: z.string().trim().optional(),
-  testimonial: z.string().trim().min(5, "Please write a short testimonial."),
+  testimonial: z.string().trim().min(5, "Tulis testimoni singkat."),
   contentConsent: z.enum(["yes", "no"]),
   trainerRatings: z
     .array(
@@ -62,7 +77,7 @@ export const postTestSchema = z.object({
         rating: z.coerce.number().int().min(1).max(5)
       })
     )
-    .min(1, "Please rate each trainer or team member.")
+    .min(1, "Beri rating untuk setiap trainer atau anggota tim.")
 });
 
 export const requiredFemaleCommitments = [

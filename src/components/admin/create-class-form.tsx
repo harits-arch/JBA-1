@@ -16,37 +16,54 @@ const initialState: AdminFormState = {
 
 export function CreateClassForm() {
   const [state, formAction] = useActionState(createClassAction, initialState);
+  const values = state.values ?? {};
 
   return (
     <form action={formAction} className="grid gap-5 sm:grid-cols-2">
       <div className="space-y-2">
-        <Label htmlFor="clientName">Client Name</Label>
-        <Input id="clientName" name="clientName" placeholder="PT Super Spring" />
+        <Label htmlFor="clientName">Nama Client</Label>
+        <Input
+          id="clientName"
+          name="clientName"
+          placeholder="PT Super Spring"
+          defaultValue={values.clientName ?? ""}
+        />
         <FieldError errors={state.fieldErrors?.clientName} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="className">Class Name</Label>
+        <Label htmlFor="className">Nama Kelas</Label>
         <Input
           id="className"
           name="className"
           placeholder="Personal Grooming Class"
+          defaultValue={values.className ?? ""}
         />
         <FieldError errors={state.fieldErrors?.className} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="classCode">Class Code</Label>
-        <Input id="classCode" name="classCode" placeholder="Auto-generated" />
+        <Label htmlFor="classCode">Kode Kelas</Label>
+        <Input
+          id="classCode"
+          name="classCode"
+          placeholder="Otomatis dibuat"
+          defaultValue={values.classCode ?? ""}
+        />
         <p className="text-xs text-muted-foreground">
-          Leave blank to generate a unique code.
+          Kosongkan untuk membuat kode unik otomatis.
         </p>
         <FieldError errors={state.fieldErrors?.classCode} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="classDate">Class Date</Label>
-        <Input id="classDate" name="classDate" type="date" />
+        <Label htmlFor="classDate">Tanggal Kelas</Label>
+        <Input
+          id="classDate"
+          name="classDate"
+          type="date"
+          defaultValue={values.classDate ?? ""}
+        />
         <FieldError errors={state.fieldErrors?.classDate} />
       </div>
 
@@ -55,29 +72,35 @@ export function CreateClassForm() {
         <select
           id="status"
           name="status"
-          defaultValue="active"
+          defaultValue={values.status ?? "active"}
           className="flex h-11 w-full rounded-2xl border border-input bg-background px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <option value="draft">Draft</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="archived">Archived</option>
+          <option value="active">Aktif</option>
+          <option value="completed">Selesai</option>
+          <option value="archived">Diarsipkan</option>
         </select>
         <FieldError errors={state.fieldErrors?.status} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="location">Location</Label>
-        <Input id="location" name="location" placeholder="Jakarta" />
+        <Label htmlFor="location">Lokasi</Label>
+        <Input
+          id="location"
+          name="location"
+          placeholder="Jakarta"
+          defaultValue={values.location ?? ""}
+        />
         <FieldError errors={state.fieldErrors?.location} />
       </div>
 
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="notes">Catatan</Label>
         <Textarea
           id="notes"
           name="notes"
-          placeholder="Room setup, session details, or operational notes"
+          placeholder="Setup ruangan, detail sesi, atau catatan operasional"
+          defaultValue={values.notes ?? ""}
         />
         <FieldError errors={state.fieldErrors?.notes} />
       </div>
@@ -100,7 +123,7 @@ function SubmitButton() {
 
   return (
     <Button className="w-full sm:w-auto" disabled={pending}>
-      {pending ? "Creating..." : "Create Class"}
+      {pending ? "Membuat..." : "Buat Kelas"}
     </Button>
   );
 }

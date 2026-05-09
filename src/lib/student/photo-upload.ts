@@ -3,17 +3,17 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 const maxPhotoSizeBytes = 5 * 1024 * 1024;
 const allowedPhotoTypes = ["image/jpeg", "image/png", "image/webp"];
 
-export function validatePhotoUpload(file: File | null, label = "Photo") {
+export function validatePhotoUpload(file: File | null, label = "Foto") {
   if (!file || file.size === 0) {
-    return `${label} is required.`;
+    return `${label} wajib diunggah.`;
   }
 
   if (!allowedPhotoTypes.includes(file.type)) {
-    return `${label} must be a JPG, PNG, or WEBP image.`;
+    return `${label} harus berupa gambar JPG, PNG, atau WEBP.`;
   }
 
   if (file.size > maxPhotoSizeBytes) {
-    return `${label} must be 5MB or smaller.`;
+    return `${label} maksimal 5MB.`;
   }
 
   return null;

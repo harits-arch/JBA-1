@@ -31,10 +31,13 @@ export async function registerForClassAction(
   formData: FormData
 ): Promise<StudentFormState> {
   const user = await requireStudentUser();
+  const values = {
+    classCode: String(formData.get("classCode") ?? "")
+  };
   const existingRegistration = await getStudentCurrentRegistration(user.id);
 
   if (existingRegistration) {
-    redirect("/pre-test");
+    redirect("/student/dashboard");
   }
 
   const parsed = classRegistrationSchema.safeParse({
@@ -44,8 +47,9 @@ export async function registerForClassAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Please enter a valid class code.",
-      fieldErrors: parsed.error.flatten().fieldErrors
+      message: "Masukkan kode kelas yang valid.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values
     };
   }
 
@@ -60,14 +64,16 @@ export async function registerForClassAction(
   if (classError) {
     return {
       status: "error",
-      message: classError.message
+      message: classError.message,
+      values
     };
   }
 
   if (!classData) {
     return {
       status: "error",
-      message: "Class code not found or the class is no longer active."
+      message: "Kode kelas tidak ditemukan atau kelas sudah tidak aktif.",
+      values
     };
   }
 
@@ -81,12 +87,14 @@ export async function registerForClassAction(
   if (registrationError && registrationError.code !== "23505") {
     return {
       status: "error",
-      message: registrationError.message
+      message: registrationError.message,
+      values
     };
   }
 
   revalidatePath("/class/register");
-  redirect("/pre-test");
+  revalidatePath("/student/dashboard");
+  redirect("/student/dashboard");
 }
 
 export async function submitPreTestAction(
@@ -94,6 +102,7 @@ export async function submitPreTestAction(
   formData: FormData
 ): Promise<StudentFormState> {
   const user = await requireStudentUser();
+  const values = getPreTestFormValues(formData);
 
   if (!user.gender) {
     redirect("/onboarding");
@@ -101,7 +110,9 @@ export async function submitPreTestAction(
 
   const classId = String(formData.get("classId") ?? "");
   const gender = user.gender;
-  const commitments = formData.getAll("commitments").map(String);
+  const commitments = formData
+    .getAll("commitments")
+    .map((commitment) => String(commitment).trim());
   const obstacles = formData.getAll("obstacles").map(String);
   const beforePhoto = formData.get("beforePhoto");
   const photoFile = beforePhoto instanceof File ? beforePhoto : null;
@@ -109,16 +120,17 @@ export async function submitPreTestAction(
   const requiredCommitments =
     gender === "female" ? requiredFemaleCommitments : requiredMaleCommitments;
 
-  if (
-    photoError ||
-    !photoFile ||
-    !validateRequiredCommitments(commitments, requiredCommitments)
-  ) {
+  const missingCommitments = requiredCommitments.filter(
+    (commitment) => !commitments.includes(commitment)
+  );
+
+  if (photoError || !photoFile || missingCommitments.length > 0) {
     return {
       status: "error",
       message:
         photoError ??
-        "Please agree to all mandatory commitments."
+        `Mohon centang semua komitmen wajib. Belum dicentang: ${missingCommitments.join(", ")}.`,
+      values
     };
   }
 
@@ -141,8 +153,9 @@ export async function submitPreTestAction(
     if (!parsed.success) {
       return {
         status: "error",
-        message: "Please check the highlighted fields.",
-        fieldErrors: parsed.error.flatten().fieldErrors
+        message: summarizeFieldErrors(parsed.error.flatten().fieldErrors),
+        fieldErrors: parsed.error.flatten().fieldErrors,
+        values
       };
     }
 
@@ -181,7 +194,8 @@ export async function submitPreTestAction(
     if (error) {
       return {
         status: "error",
-        message: error.message
+        message: error.message,
+        values
       };
     }
   } else {
@@ -196,8 +210,9 @@ export async function submitPreTestAction(
     if (!parsed.success) {
       return {
         status: "error",
-        message: "Please check the highlighted fields.",
-        fieldErrors: parsed.error.flatten().fieldErrors
+        message: summarizeFieldErrors(parsed.error.flatten().fieldErrors),
+        fieldErrors: parsed.error.flatten().fieldErrors,
+        values
       };
     }
 
@@ -243,14 +258,16 @@ export async function submitPreTestAction(
     if (error) {
       return {
         status: "error",
-        message: error.message
+        message: error.message,
+        values
       };
     }
   }
 
   revalidatePath("/pre-test");
   revalidatePath("/waiting");
-  redirect("/waiting");
+  revalidatePath("/student/dashboard");
+  redirect("/student/dashboard");
 }
 
 export async function submitPostTestAction(
@@ -259,25 +276,27 @@ export async function submitPostTestAction(
 ): Promise<StudentFormState> {
   const user = await requireStudentUser();
   const classId = String(formData.get("classId") ?? "");
+  const values = getPostTestFormValues(formData);
   const afterPhoto = formData.get("afterPhoto");
   const photoFile = afterPhoto instanceof File ? afterPhoto : null;
-  const photoError = validatePhotoUpload(photoFile, "After photo");
+  const photoError = validatePhotoUpload(photoFile, "Foto after");
 
   if (photoError || !photoFile) {
     return {
       status: "error",
-      message: photoError ?? "After photo is required."
+      message: photoError ?? "Foto after wajib diunggah.",
+      values
     };
   }
 
   const registration = await getStudentCurrentRegistration(user.id);
 
   if (!registration?.classes || registration.class_id !== classId) {
-    redirect("/class/register");
+    redirect("/student/dashboard");
   }
 
   if (!registration.classes.post_test_open) {
-    redirect("/waiting");
+    redirect("/student/dashboard");
   }
 
   const preTestSubmission = await getStudentPreTestSubmission(user.id, classId);
@@ -297,12 +316,13 @@ export async function submitPostTestAction(
   if (existingError) {
     return {
       status: "error",
-      message: existingError.message
+      message: existingError.message,
+      values
     };
   }
 
   if (existingPostTest) {
-    redirect("/waiting");
+    redirect("/student/dashboard");
   }
 
   const trainers = await getClassTrainersForStudent(classId);
@@ -325,8 +345,9 @@ export async function submitPostTestAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Please check the highlighted fields.",
-      fieldErrors: parsed.error.flatten().fieldErrors
+      message: "Mohon periksa kembali kolom yang ditandai.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values
     };
   }
 
@@ -359,7 +380,8 @@ export async function submitPostTestAction(
   if (postTestError) {
     return {
       status: "error",
-      message: postTestError.message
+      message: postTestError.message,
+      values
     };
   }
 
@@ -374,13 +396,15 @@ export async function submitPostTestAction(
   if (ratingsError) {
     return {
       status: "error",
-      message: ratingsError.message
+      message: ratingsError.message,
+      values
     };
   }
 
   revalidatePath("/post-test");
   revalidatePath("/waiting");
-  redirect("/waiting");
+  revalidatePath("/student/dashboard");
+  redirect("/student/dashboard");
 }
 
 async function ensurePreTestCanBeSubmitted(
@@ -390,7 +414,7 @@ async function ensurePreTestCanBeSubmitted(
   const registration = await getStudentCurrentRegistration(userId);
 
   if (!registration || registration.class_id !== classId) {
-    redirect("/class/register");
+    redirect("/student/dashboard");
   }
 
   const supabase = createSupabaseAdminClient();
@@ -409,8 +433,81 @@ async function ensurePreTestCanBeSubmitted(
   }
 
   if (existingSubmission) {
-    redirect("/waiting");
+    redirect("/student/dashboard");
   }
 
   return null;
+}
+
+function summarizeFieldErrors(fieldErrors: Partial<Record<string, string[]>>) {
+  const messages = Object.entries(fieldErrors)
+    .flatMap(([field, errors]) =>
+      (errors ?? []).map((error) => `${formatFieldName(field)}: ${error}`)
+    )
+    .filter(Boolean);
+
+  return messages.length > 0
+    ? messages.join(" ")
+    : "Mohon periksa kembali kolom yang ditandai.";
+}
+
+function formatFieldName(field: string) {
+  const labels: Record<string, string> = {
+    groomingFrequency: "Frekuensi grooming",
+    expectations: "Ekspektasi",
+    obstacles: "Kendala",
+    obstacleExplanation: "Penjelasan kendala",
+    femaleActivities: "Aktivitas",
+    maleHabits: "Rutinitas grooming",
+    maleSkinType: "Kondisi kulit",
+    maleSocialMediaWilling: "Kesediaan media sosial",
+    maleUploadTimeline: "Timeline upload"
+  };
+
+  return labels[field] ?? field;
+}
+
+function getPreTestFormValues(formData: FormData) {
+  return {
+    classId: String(formData.get("classId") ?? ""),
+    groomingFrequency: String(formData.get("groomingFrequency") ?? ""),
+    expectations: String(formData.get("expectations") ?? ""),
+    obstacles: formData.getAll("obstacles").map(String),
+    obstacleExplanation: String(formData.get("obstacleExplanation") ?? ""),
+    femaleActivities: formData.getAll("femaleActivities").map(String),
+    maleHabits: formData.getAll("maleHabits").map(String),
+    maleSkinType: String(formData.get("maleSkinType") ?? ""),
+    maleSocialMediaWilling: String(
+      formData.get("maleSocialMediaWilling") ?? ""
+    ),
+    maleUploadTimeline: String(formData.get("maleUploadTimeline") ?? ""),
+    commitments: formData.getAll("commitments").map(String)
+  };
+}
+
+function getPostTestFormValues(formData: FormData) {
+  const values: Record<string, string | string[]> = {
+    classId: String(formData.get("classId") ?? ""),
+    likedMost: String(formData.get("likedMost") ?? ""),
+    improvementFeedback: String(formData.get("improvementFeedback") ?? ""),
+    nextSteps: String(formData.get("nextSteps") ?? ""),
+    recommendation: String(formData.get("recommendation") ?? ""),
+    recommendationTarget: String(formData.get("recommendationTarget") ?? ""),
+    testimonial: String(formData.get("testimonial") ?? ""),
+    contentConsent: String(formData.get("contentConsent") ?? "")
+  };
+
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("trainerRating:") && typeof value === "string") {
+      values[key] = value;
+    }
+  }
+
+  return values;
+}
+
+function getPreTestFormValuesFromClassId(classId: string) {
+  return {
+    classId
+  };
 }

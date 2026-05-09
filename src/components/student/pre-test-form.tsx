@@ -16,61 +16,61 @@ const initialState: StudentFormState = {
 };
 
 const femaleGroomingFrequencies = [
-  "Every day",
-  "2-3 times a week",
-  "Only for certain events",
-  "Almost never"
+  "Setiap hari",
+  "2-3 kali seminggu",
+  "Hanya untuk acara tertentu",
+  "Hampir tidak pernah"
 ];
 
 const maleGroomingFrequencies = [
-  "Every day",
-  "Several times a week",
-  "Only for meetings or important events",
-  "Rarely / not routine"
+  "Setiap hari",
+  "Beberapa kali seminggu",
+  "Hanya untuk meeting atau acara penting",
+  "Jarang / tidak rutin"
 ];
 
 const femaleActivities = [
   "Basic skincare",
-  "Light makeup",
+  "Makeup ringan",
   "Full makeup",
   "Hair styling",
-  "Not routine"
+  "Tidak rutin"
 ];
 
 const maleHabits = [
   "Basic skincare (face wash, sunscreen)",
-  "Hair styling",
-  "Perfume / body care",
-  "Beard or moustache grooming",
-  "Not routine"
+  "Menata rambut",
+  "Parfum / body care",
+  "Merawat janggut atau kumis",
+  "Tidak rutin"
 ];
 
 const femaleObstacles = [
-  "No time",
-  "Do not know the right technique",
-  "Do not have suitable products",
-  "Lazy / not used to it",
-  "Not confident",
-  "Confused about product order",
-  "Other"
+  "Tidak ada waktu",
+  "Belum tahu teknik yang benar",
+  "Belum punya produk yang cocok",
+  "Malas / belum terbiasa",
+  "Kurang percaya diri",
+  "Bingung urutan produk",
+  "Lainnya"
 ];
 
 const maleObstacles = [
-  "No time",
-  "Do not know the right way",
-  "Do not have suitable products",
-  "Lazy / not used to it",
-  "Do not feel it is important",
-  "Confused where to start",
-  "Other"
+  "Tidak ada waktu",
+  "Belum tahu cara yang benar",
+  "Belum punya produk yang cocok",
+  "Malas / belum terbiasa",
+  "Belum merasa ini penting",
+  "Bingung mulai dari mana",
+  "Lainnya"
 ];
 
 const maleSkinTypes = [
-  "Acne scars",
-  "Acne-prone",
-  "Oily",
-  "Dry",
-  "Normal and dull"
+  "Bekas jerawat",
+  "Mudah berjerawat",
+  "Berminyak",
+  "Kering",
+  "Normal dan kusam"
 ];
 
 export function PreTestForm({
@@ -82,37 +82,40 @@ export function PreTestForm({
 }) {
   const [state, formAction] = useActionState(submitPreTestAction, initialState);
   const isFemale = gender === "female";
+  const values = state.values ?? {};
 
   return (
-    <form
-      action={formAction}
-      className="space-y-6"
-      encType="multipart/form-data"
-    >
+    <form action={formAction} className="space-y-6">
       <input type="hidden" name="classId" value={classId} />
 
       <QuestionSection
-        title="Grooming Habit"
+        title="Kebiasaan Grooming"
         description={
           isFemale
-            ? "Tell us how often you do makeup, hair, or appearance grooming."
-            : "Tell us how often you pay attention to grooming."
+            ? "Ceritakan seberapa sering kamu makeup, menata rambut, atau merawat penampilan."
+            : "Ceritakan seberapa sering kamu memperhatikan grooming."
         }
       >
         <RadioGroup
           name="groomingFrequency"
+          required
           options={isFemale ? femaleGroomingFrequencies : maleGroomingFrequencies}
+          selectedValue={getStringValue(values, "groomingFrequency")}
         />
         <FieldError errors={state.fieldErrors?.groomingFrequency} />
       </QuestionSection>
 
       <QuestionSection
-        title={isFemale ? "Activities" : "Grooming Routine"}
-        description="Choose all that apply."
+        title={isFemale ? "Aktivitas" : "Rutinitas Grooming"}
+        description="Pilih semua yang sesuai."
       >
         <CheckboxGroup
           name={isFemale ? "femaleActivities" : "maleHabits"}
           options={isFemale ? femaleActivities : maleHabits}
+          selectedValues={getArrayValue(
+            values,
+            isFemale ? "femaleActivities" : "maleHabits"
+          )}
         />
         <FieldError
           errors={
@@ -122,32 +125,37 @@ export function PreTestForm({
       </QuestionSection>
 
       <QuestionSection
-        title={isFemale ? "Expectations" : "Goal for Joining"}
-        description="Share what you hope to gain from this class."
+        title={isFemale ? "Ekspektasi" : "Tujuan Mengikuti Kelas"}
+        description="Ceritakan hal yang ingin kamu dapatkan dari kelas ini."
       >
         <Textarea
           name="expectations"
+          required
+          defaultValue={getStringValue(values, "expectations")}
           placeholder={
             isFemale
-              ? "Example: feel more confident, look professional, do my own grooming..."
-              : "Example: look more professional, increase confidence, support work..."
+              ? "Contoh: lebih percaya diri, tampil profesional, bisa grooming sendiri..."
+              : "Contoh: terlihat lebih profesional, lebih percaya diri, menunjang pekerjaan..."
           }
         />
         <FieldError errors={state.fieldErrors?.expectations} />
       </QuestionSection>
 
       <QuestionSection
-        title="Obstacles"
-        description="What makes consistent grooming difficult for you?"
+        title="Kendala"
+        description="Apa yang membuat grooming konsisten terasa sulit?"
       >
         <CheckboxGroup
           name="obstacles"
           options={isFemale ? femaleObstacles : maleObstacles}
+          selectedValues={getArrayValue(values, "obstacles")}
         />
         <FieldError errors={state.fieldErrors?.obstacles} />
         <Textarea
           name="obstacleExplanation"
-          placeholder="Briefly describe your biggest obstacle."
+          required
+          defaultValue={getStringValue(values, "obstacleExplanation")}
+          placeholder="Jelaskan singkat kendala terbesar kamu."
         />
         <FieldError errors={state.fieldErrors?.obstacleExplanation} />
       </QuestionSection>
@@ -155,31 +163,40 @@ export function PreTestForm({
       {isFemale ? null : (
         <>
           <QuestionSection
-            title="Skin Type Assessment"
-            description="This helps JBA match grooming product recommendations."
+            title="Assessment Kondisi Kulit"
+            description="Ini membantu JBA menyesuaikan rekomendasi produk grooming."
           >
-            <RadioGroup name="maleSkinType" options={maleSkinTypes} />
+            <RadioGroup
+              name="maleSkinType"
+              options={maleSkinTypes}
+              required
+              selectedValue={getStringValue(values, "maleSkinType")}
+            />
             <FieldError errors={state.fieldErrors?.maleSkinType} />
           </QuestionSection>
 
           <QuestionSection
-            title="Social Media Task"
-            description="Confirm your willingness and upload timeline."
+            title="Tugas Media Sosial"
+            description="Konfirmasi kesediaan dan timeline upload."
           >
             <RadioGroup
               name="maleSocialMediaWilling"
+              required
+              selectedValue={getStringValue(values, "maleSocialMediaWilling")}
               options={[
-                { label: "Yes, I am willing to post", value: "yes" },
-                { label: "No, I am not willing", value: "no" }
+                { label: "Ya, saya bersedia posting", value: "yes" },
+                { label: "Tidak bersedia", value: "no" }
               ]}
             />
             <FieldError errors={state.fieldErrors?.maleSocialMediaWilling} />
             <RadioGroup
               name="maleUploadTimeline"
+              required
+              selectedValue={getStringValue(values, "maleUploadTimeline")}
               options={[
-                "Same day",
-                "Maximum 1 day after class",
-                "Maximum 2 days after class"
+                "Hari yang sama",
+                "Maksimal 1 hari setelah kelas",
+                "Maksimal 2 hari setelah kelas"
               ]}
             />
             <FieldError errors={state.fieldErrors?.maleUploadTimeline} />
@@ -188,11 +205,13 @@ export function PreTestForm({
       )}
 
       <QuestionSection
-        title="Commitment"
-        description="All commitments are mandatory before joining the class."
+        title="Komitmen"
+        description="Semua komitmen wajib disetujui sebelum mengikuti kelas."
       >
         <CheckboxGroup
           name="commitments"
+          required
+          selectedValues={getArrayValue(values, "commitments")}
           options={
             isFemale
               ? [
@@ -201,11 +220,11 @@ export function PreTestForm({
                     value: "follow-instagram"
                   },
                   {
-                    label: "Send a BEFORE photo without makeup and without filter",
+                    label: "Kirim foto BEFORE tanpa makeup dan tanpa filter",
                     value: "before-photo"
                   },
                   {
-                    label: "Arrive on time and follow the class seriously",
+                    label: "Hadir tepat waktu dan mengikuti kelas dengan serius",
                     value: "on-time"
                   }
                 ]
@@ -215,15 +234,15 @@ export function PreTestForm({
                     value: "follow-instagram"
                   },
                   {
-                    label: "Arrive on time and follow the class seriously",
+                    label: "Hadir tepat waktu dan mengikuti kelas dengan serius",
                     value: "on-time"
                   },
                   {
-                    label: "Send a natural BEFORE photo without filter",
+                    label: "Kirim foto BEFORE natural tanpa filter",
                     value: "before-photo"
                   },
                   {
-                    label: "Follow directions during the practice session",
+                    label: "Mengikuti arahan selama sesi praktik",
                     value: "follow-directions"
                   }
                 ]
@@ -232,20 +251,21 @@ export function PreTestForm({
       </QuestionSection>
 
       <QuestionSection
-        title="Upload BEFORE Photo"
+        title="Upload Foto BEFORE"
         description={
           isFemale
-            ? "Upload a clear front-facing photo without makeup and without filter."
-            : "Upload a clear natural front-facing photo without edit or filter."
+            ? "Unggah foto wajah dari depan yang jelas tanpa makeup dan tanpa filter."
+            : "Unggah foto wajah natural dari depan yang jelas tanpa edit atau filter."
         }
       >
         <input
           name="beforePhoto"
           type="file"
+          required
           accept="image/png,image/jpeg,image/webp"
           className="block w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
         />
-        <p className="text-xs text-muted-foreground">JPG, PNG, or WEBP. Max 5MB.</p>
+        <p className="text-xs text-muted-foreground">JPG, PNG, atau WEBP. Maksimal 5MB.</p>
       </QuestionSection>
 
       {state.message ? (
@@ -283,10 +303,14 @@ function QuestionSection({
 
 function RadioGroup({
   name,
-  options
+  options,
+  required = false,
+  selectedValue = ""
 }: {
   name: string;
   options: Array<string | { label: string; value: string }>;
+  required?: boolean;
+  selectedValue?: string;
 }) {
   return (
     <div className="grid gap-2">
@@ -303,6 +327,8 @@ function RadioGroup({
               name={name}
               type="radio"
               value={value}
+              required={required}
+              defaultChecked={selectedValue === value}
               className="accent-primary"
             />
             {label}
@@ -315,10 +341,14 @@ function RadioGroup({
 
 function CheckboxGroup({
   name,
-  options
+  options,
+  required = false,
+  selectedValues = []
 }: {
   name: string;
   options: Array<string | { label: string; value: string }>;
+  required?: boolean;
+  selectedValues?: string[];
 }) {
   return (
     <div className="grid gap-2">
@@ -335,6 +365,8 @@ function CheckboxGroup({
               name={name}
               type="checkbox"
               value={value}
+              required={required}
+              defaultChecked={selectedValues.includes(value)}
               className="accent-primary"
             />
             {label}
@@ -350,7 +382,7 @@ function SubmitButton() {
 
   return (
     <Button className="w-full" size="lg" disabled={pending}>
-      {pending ? "Submitting..." : "Submit Pre-Test"}
+      {pending ? "Mengirim..." : "Kirim Pre-Test"}
     </Button>
   );
 }
@@ -361,4 +393,22 @@ function FieldError({ errors }: { errors?: string[] }) {
   }
 
   return <p className="text-xs text-destructive">{errors[0]}</p>;
+}
+
+function getStringValue(
+  values: Record<string, string | string[]>,
+  key: string
+) {
+  const value = values[key];
+
+  return typeof value === "string" ? value : "";
+}
+
+function getArrayValue(
+  values: Record<string, string | string[]>,
+  key: string
+) {
+  const value = values[key];
+
+  return Array.isArray(value) ? value : [];
 }

@@ -22,6 +22,8 @@ export interface Database {
           full_name: string | null;
           phone: string | null;
           email: string | null;
+          password_hash: string | null;
+          phone_verified_at: string | null;
           gender: Gender | null;
           date_of_birth: string | null;
           instagram_username: string | null;
@@ -36,6 +38,8 @@ export interface Database {
           full_name?: string | null;
           phone?: string | null;
           email?: string | null;
+          password_hash?: string | null;
+          phone_verified_at?: string | null;
           gender?: Gender | null;
           date_of_birth?: string | null;
           instagram_username?: string | null;
@@ -44,6 +48,27 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["users"]["Insert"]>;
+      };
+      auth_otps: {
+        Row: {
+          id: string;
+          phone: string;
+          otp_hash: string;
+          expires_at: string;
+          consumed_at: string | null;
+          attempts: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          phone: string;
+          otp_hash: string;
+          expires_at: string;
+          consumed_at?: string | null;
+          attempts?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["auth_otps"]["Insert"]>;
       };
       classes: {
         Row: {
@@ -210,5 +235,9 @@ export interface Database {
         >;
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }

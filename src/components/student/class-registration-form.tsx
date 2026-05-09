@@ -18,19 +18,21 @@ export function ClassRegistrationForm() {
     registerForClassAction,
     initialState
   );
+  const values = state.values ?? {};
 
   return (
     <form action={formAction} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="classCode">Class Code</Label>
+        <Label htmlFor="classCode">Kode Kelas</Label>
         <Input
           id="classCode"
           name="classCode"
           placeholder="UNIQLO2026"
           autoCapitalize="characters"
+          defaultValue={typeof values.classCode === "string" ? values.classCode : ""}
         />
         <p className="text-xs leading-5 text-muted-foreground">
-          Enter the code provided by JBA or your employer.
+          Masukkan kode yang diberikan oleh JBA atau perusahaan kamu.
         </p>
         {state.fieldErrors?.classCode?.[0] ? (
           <p className="text-xs text-destructive">
@@ -55,7 +57,7 @@ function SubmitButton() {
 
   return (
     <Button className="w-full" disabled={pending}>
-      {pending ? "Joining..." : "Join Class"}
+      {pending ? "Menghubungkan..." : "Ikut Kelas"}
     </Button>
   );
 }

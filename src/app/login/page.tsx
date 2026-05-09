@@ -12,9 +12,10 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-4 py-10">
       <Card className="w-full max-w-md bg-white">
         <CardHeader>
-          <CardTitle>Student Login</CardTitle>
+          <CardTitle>Masuk Student</CardTitle>
           <CardDescription>
-            Login or register with your active phone number.
+            Daftar sekali dengan OTP WhatsApp, lalu login berikutnya cukup pakai
+            nomor dan password.
           </CardDescription>
         </CardHeader>
         <CardContent>

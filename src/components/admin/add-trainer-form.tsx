@@ -15,31 +15,42 @@ const initialState: AdminFormState = {
 
 export function AddTrainerForm({ classId }: { classId: string }) {
   const [state, formAction] = useActionState(addTrainerAction, initialState);
+  const values = state.status === "error" ? state.values ?? {} : {};
 
   return (
     <form action={formAction} className="grid gap-4 sm:grid-cols-[1fr_1fr_120px_auto]">
       <input type="hidden" name="classId" value={classId} />
 
       <div className="space-y-2">
-        <Label htmlFor="trainer-name">Name</Label>
-        <Input id="trainer-name" name="name" placeholder="Indra Kurniawan" />
+        <Label htmlFor="trainer-name">Nama</Label>
+        <Input
+          id="trainer-name"
+          name="name"
+          placeholder="Indra Kurniawan"
+          defaultValue={values.name ?? ""}
+        />
         <FieldError errors={state.fieldErrors?.name} />
       </div>
 
       <div className="space-y-2">
         <Label htmlFor="trainer-role">Role</Label>
-        <Input id="trainer-role" name="role" placeholder="Makeup Artist" />
+        <Input
+          id="trainer-role"
+          name="role"
+          placeholder="Makeup Artist"
+          defaultValue={values.role ?? ""}
+        />
         <FieldError errors={state.fieldErrors?.role} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="display-order">Order</Label>
+        <Label htmlFor="display-order">Urutan</Label>
         <Input
           id="display-order"
           name="displayOrder"
           type="number"
           min="0"
-          defaultValue="0"
+          defaultValue={values.displayOrder ?? "0"}
         />
         <FieldError errors={state.fieldErrors?.displayOrder} />
       </div>
@@ -68,7 +79,7 @@ function SubmitButton() {
 
   return (
     <Button className="w-full" disabled={pending}>
-      {pending ? "Adding..." : "Add"}
+      {pending ? "Menambahkan..." : "Tambah"}
     </Button>
   );
 }

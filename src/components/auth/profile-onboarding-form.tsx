@@ -20,16 +20,18 @@ const initialState: ProfileFormState = {
 
 export function ProfileOnboardingForm({ user }: { user: UserRow | null }) {
   const [state, formAction] = useActionState(completeProfileAction, initialState);
+  const values = state.values ?? {};
+  const selectedGender = values.gender || user?.gender || "";
 
   return (
     <form action={formAction} className="grid gap-5 sm:grid-cols-2">
       <div className="space-y-2">
-        <Label htmlFor="fullName">Full Name</Label>
+        <Label htmlFor="fullName">Nama Lengkap</Label>
         <Input
           id="fullName"
           name="fullName"
-          placeholder="Your full name"
-          defaultValue={user?.full_name ?? ""}
+          placeholder="Nama lengkap kamu"
+          defaultValue={values.fullName ?? user?.full_name ?? ""}
           autoComplete="name"
         />
         <FieldError errors={state.fieldErrors?.fullName} />
@@ -42,59 +44,60 @@ export function ProfileOnboardingForm({ user }: { user: UserRow | null }) {
           name="email"
           type="email"
           placeholder="name@example.com"
-          defaultValue={user?.email ?? ""}
+          defaultValue={values.email ?? user?.email ?? ""}
           autoComplete="email"
         />
         <FieldError errors={state.fieldErrors?.email} />
       </div>
 
       <div className="space-y-2">
-        <Label>Gender</Label>
+        <Label>Jenis Kelamin</Label>
         <div className="grid grid-cols-2 gap-3">
           <label className="flex cursor-pointer items-center gap-2 rounded-2xl border bg-background px-4 py-3 text-sm font-medium">
             <input
               name="gender"
               type="radio"
               value="female"
-              defaultChecked={user?.gender === "female"}
+              defaultChecked={selectedGender === "female"}
               className="accent-primary"
             />
-            Female
+            Perempuan
           </label>
           <label className="flex cursor-pointer items-center gap-2 rounded-2xl border bg-background px-4 py-3 text-sm font-medium">
             <input
               name="gender"
               type="radio"
               value="male"
-              defaultChecked={user?.gender === "male"}
+              defaultChecked={selectedGender === "male"}
               className="accent-primary"
             />
-            Male
+            Laki-laki
           </label>
         </div>
         <FieldError errors={state.fieldErrors?.gender} />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="dateOfBirth">Date of Birth</Label>
+        <Label htmlFor="dateOfBirth">Tanggal Lahir</Label>
         <Input
           id="dateOfBirth"
           name="dateOfBirth"
           type="date"
-          defaultValue={user?.date_of_birth ?? ""}
+          defaultValue={values.dateOfBirth ?? user?.date_of_birth ?? ""}
           autoComplete="bday"
         />
         <FieldError errors={state.fieldErrors?.dateOfBirth} />
       </div>
 
       <div className="space-y-2 sm:col-span-2">
-        <Label htmlFor="instagramUsername">Instagram Username</Label>
+        <Label htmlFor="instagramUsername">Username Instagram</Label>
         <Input
           id="instagramUsername"
           name="instagramUsername"
           placeholder="@username"
           defaultValue={
-            user?.instagram_username ? `@${user.instagram_username}` : ""
+            values.instagramUsername ??
+            (user?.instagram_username ? `@${user.instagram_username}` : "")
           }
         />
         <FieldError errors={state.fieldErrors?.instagramUsername} />
@@ -118,7 +121,7 @@ function SubmitButton() {
 
   return (
     <Button className="w-full sm:w-auto" disabled={pending}>
-      {pending ? "Saving..." : "Continue"}
+      {pending ? "Menyimpan..." : "Lanjut"}
     </Button>
   );
 }

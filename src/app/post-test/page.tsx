@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { StudentLogoutButton } from "@/components/auth/student-logout-button";
 import { PostTestForm } from "@/components/student/post-test-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,7 @@ export default async function PostTestPage() {
   const registration = await getStudentCurrentRegistration(user.id);
 
   if (!registration?.classes) {
-    redirect("/class/register");
+    redirect("/student/dashboard");
   }
 
   const preTestSubmission = await getStudentPreTestSubmission(
@@ -45,19 +46,24 @@ export default async function PostTestPage() {
   if (existingPostTest) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-lg bg-white text-center">
+        <div className="w-full max-w-lg">
+        <Card className="w-full bg-white text-center">
           <CardHeader>
-            <CardTitle>Post-Test Submitted</CardTitle>
+            <CardTitle>Post-Test Sudah Terkirim</CardTitle>
             <CardDescription>
-              Thank you. JBA has received your final feedback and AFTER photo.
+              Terima kasih. JBA sudah menerima feedback akhir dan foto AFTER kamu.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="secondary">
-              <Link href="/waiting">Back to Waiting Area</Link>
+              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
             </Button>
           </CardContent>
         </Card>
+          <div className="mt-6 flex justify-center">
+            <StudentLogoutButton />
+          </div>
+        </div>
       </main>
     );
   }
@@ -65,20 +71,25 @@ export default async function PostTestPage() {
   if (!registration.classes.post_test_open) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-lg bg-white text-center">
+        <div className="w-full max-w-lg">
+        <Card className="w-full bg-white text-center">
           <CardHeader>
-            <CardTitle>Post-Test Not Yet Open</CardTitle>
+            <CardTitle>Post-Test Belum Dibuka</CardTitle>
             <CardDescription>
-              Please enjoy your class. The JBA team will open post-test access
-              after the session ends.
+              Silakan ikuti kelas terlebih dahulu. Tim JBA akan membuka akses
+              Post-Test setelah sesi selesai.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="secondary">
-              <Link href="/waiting">Back to Waiting Area</Link>
+              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
             </Button>
           </CardContent>
         </Card>
+          <div className="mt-6 flex justify-center">
+            <StudentLogoutButton />
+          </div>
+        </div>
       </main>
     );
   }
@@ -88,20 +99,25 @@ export default async function PostTestPage() {
   if (trainers.length === 0) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-lg bg-white text-center">
+        <div className="w-full max-w-lg">
+        <Card className="w-full bg-white text-center">
           <CardHeader>
-            <CardTitle>Post-Test Setup Pending</CardTitle>
+            <CardTitle>Setup Post-Test Belum Lengkap</CardTitle>
             <CardDescription>
-              Trainer ratings are not ready yet. Please ask the JBA team to add
-              trainers for this class.
+              Rating trainer belum siap. Mohon minta tim JBA menambahkan trainer
+              untuk kelas ini.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild variant="secondary">
-              <Link href="/waiting">Back to Waiting Area</Link>
+              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
             </Button>
           </CardContent>
         </Card>
+          <div className="mt-6 flex justify-center">
+            <StudentLogoutButton />
+          </div>
+        </div>
       </main>
     );
   }
@@ -120,6 +136,9 @@ export default async function PostTestPage() {
           <PostTestForm classId={registration.class_id} trainers={trainers} />
         </CardContent>
       </Card>
+      <div className="mx-auto mt-6 flex max-w-3xl justify-center">
+        <StudentLogoutButton />
+      </div>
     </main>
   );
 }

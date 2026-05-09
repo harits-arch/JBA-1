@@ -260,12 +260,20 @@ export async function createSubmissionPhotoUrl(path: string | null) {
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.storage
+    .from("submissions")
+    .createSignedUrl(path, 60 * 60);
+
+  if (!error) {
+    return data.signedUrl;
+  }
+
+  const { data: fallbackData, error: fallbackError } = await supabase.storage
     .from("submission-photos")
     .createSignedUrl(path, 60 * 60);
 
-  if (error) {
-    throw error;
+  if (fallbackError) {
+    throw fallbackError;
   }
 
-  return data.signedUrl;
+  return fallbackData.signedUrl;
 }

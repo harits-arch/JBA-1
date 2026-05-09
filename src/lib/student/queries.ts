@@ -12,6 +12,15 @@ export type StudentRegistrationWithClass = RegistrationRow & {
   classes: ClassRow | null;
 };
 
+export type StudentDashboardData = {
+  registration: StudentRegistrationWithClass | null;
+  preTest: PreTestRow | null;
+  postTest: PostTestRow | null;
+  trainers: TrainerRow[];
+  beforePhotoUrl: string | null;
+  afterPhotoUrl: string | null;
+};
+
 export async function getStudentCurrentRegistration(userId: string) {
   const supabase = createSupabaseAdminClient();
   const { data: registrations, error } = await supabase
@@ -86,4 +95,58 @@ export async function getClassTrainersForStudent(classId: string) {
   }
 
   return (trainers ?? []) as TrainerRow[];
+}
+
+export async function getStudentDashboardData(
+  userId: string
+): Promise<StudentDashboardData> {
+  const registration = await getStudentCurrentRegistration(userId);
+
+  if (!registration?.classes) {
+    return {
+      registration,
+      preTest: null,
+      postTest: null,
+      trainers: [],
+      beforePhotoUrl: null,
+      afterPhotoUrl: null
+    };
+  }
+
+  const [preTest, postTest, trainers] = await Promise.all([
+    getStudentPreTestSubmission(userId, registration.class_id),
+    getStudentPostTestSubmission(userId, registration.class_id),
+    getClassTrainersForStudent(registration.class_id)
+  ]);
+
+  const [beforePhotoUrl, afterPhotoUrl] = await Promise.all([
+    createStudentPhotoUrl(preTest?.before_photo_path ?? null),
+    createStudentPhotoUrl(postTest?.after_photo_path ?? null)
+  ]);
+
+  return {
+    registration,
+    preTest,
+    postTest,
+    trainers,
+    beforePhotoUrl,
+    afterPhotoUrl
+  };
+}
+
+async function createStudentPhotoUrl(path: string | null) {
+  if (!path) {
+    return null;
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.storage
+    .from("submission-photos")
+    .createSignedUrl(path, 60 * 60);
+
+  if (error) {
+    return null;
+  }
+
+  return data.signedUrl;
 }

@@ -31,16 +31,16 @@ export default async function ClassStudentsPage({
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Button asChild variant="ghost">
-            <Link href={`/admin/classes/${classData.id}`}>Back to Class</Link>
+            <Link href={`/admin/classes/${classData.id}`}>Kembali ke Kelas</Link>
           </Button>
           <Button asChild variant="secondary">
-            <Link href="/admin/classes">All Classes</Link>
+            <Link href="/admin/classes">Semua Kelas</Link>
           </Button>
         </div>
 
         <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Registered Students</CardTitle>
+            <CardTitle>Student Terdaftar</CardTitle>
             <CardDescription>
               {classData.client_name} - {classData.class_code}
             </CardDescription>
@@ -57,10 +57,10 @@ export default async function ClassStudentsPage({
                   >
                     <div>
                       <p className="font-semibold text-primary">
-                        {student?.full_name ?? "Unnamed Student"}
+                        {student?.full_name ?? "Student Tanpa Nama"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {student?.phone ?? "No phone"}
+                        {student?.phone ?? "Tidak ada nomor"}
                       </p>
                     </div>
                     <div>
@@ -89,8 +89,8 @@ export default async function ClassStudentsPage({
                         }
                       >
                         {student?.profile_completed
-                          ? "Profile Complete"
-                          : "Incomplete"}
+                          ? "Profil Lengkap"
+                          : "Belum Lengkap"}
                       </Badge>
                     </div>
                   </div>
@@ -99,14 +99,14 @@ export default async function ClassStudentsPage({
             ) : (
               <div className="rounded-2xl border border-dashed bg-background p-8 text-center">
                 <p className="font-semibold text-primary">
-                  No registered students yet
+                  Belum ada student terdaftar
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Share class code{" "}
+                  Bagikan kode kelas{" "}
                   <span className="font-mono font-semibold text-primary">
                     {classData.class_code}
                   </span>{" "}
-                  with students to let them register.
+                  ke student agar mereka bisa registrasi.
                 </p>
               </div>
             )}

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { getDecodedSessionToken } from "@/lib/auth/session";
+import { getCurrentUserFromSession } from "@/lib/auth/session";
 import { profileSchema } from "@/lib/auth/profile";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -10,15 +10,23 @@ export type ProfileFormState = {
   status: "idle" | "error";
   message?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
+  values?: Record<string, string>;
 };
 
 export async function completeProfileAction(
   _previousState: ProfileFormState,
   formData: FormData
 ): Promise<ProfileFormState> {
-  const decodedToken = await getDecodedSessionToken();
+  const currentUser = await getCurrentUserFromSession();
+  const values = {
+    fullName: String(formData.get("fullName") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    gender: String(formData.get("gender") ?? ""),
+    dateOfBirth: String(formData.get("dateOfBirth") ?? ""),
+    instagramUsername: String(formData.get("instagramUsername") ?? "")
+  };
 
-  if (!decodedToken) {
+  if (!currentUser) {
     redirect("/login");
   }
 
@@ -33,29 +41,15 @@ export async function completeProfileAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Please check the highlighted fields.",
-      fieldErrors: parsed.error.flatten().fieldErrors
+      message: "Mohon periksa kembali kolom yang ditandai.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values
     };
   }
 
   const supabase = createSupabaseAdminClient();
-  const { data: existingUser, error: readError } = await supabase
-    .from("users")
-    .select("id, role")
-    .eq("firebase_uid", decodedToken.uid)
-    .maybeSingle();
-
-  if (readError) {
-    return {
-      status: "error",
-      message: readError.message
-    };
-  }
-
   const profilePayload = {
-    firebase_uid: decodedToken.uid,
     full_name: parsed.data.fullName,
-    phone: decodedToken.phone_number ?? null,
     email: parsed.data.email,
     gender: parsed.data.gender,
     date_of_birth: parsed.data.dateOfBirth,
@@ -63,22 +57,18 @@ export async function completeProfileAction(
     profile_completed: true
   };
 
-  const { error: writeError } = existingUser
-    ? await supabase
-        .from("users")
-        .update(profilePayload)
-        .eq("id", existingUser.id)
-    : await supabase.from("users").insert({
-        ...profilePayload,
-        role: "student"
-      });
+  const { error: writeError } = await supabase
+    .from("users")
+    .update(profilePayload)
+    .eq("id", currentUser.id);
 
   if (writeError) {
     return {
       status: "error",
-      message: writeError.message
+      message: writeError.message,
+      values
     };
   }
 
-  redirect("/class/register");
+  redirect("/student/dashboard");
 }

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { ComponentType } from "react";
+import { ClipboardCheck, GraduationCap, Sparkles, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,7 @@ import { getAdminDashboardStats, getClassesForAdmin } from "@/lib/admin/queries"
 
 export const dynamic = "force-dynamic";
 
-const numberFormatter = new Intl.NumberFormat("en-US");
+const numberFormatter = new Intl.NumberFormat("id-ID");
 
 export default async function AdminPage() {
   await requireAdminUser();
@@ -30,29 +32,41 @@ export default async function AdminPage() {
         <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent">
-              JBA Operations
+              Operasional JBA
             </p>
-            <h1 className="mt-2 text-3xl font-bold text-primary">
-              Admin Dashboard
+            <h1 className="mt-2 text-4xl font-bold text-primary [font-family:var(--font-playfair)]">
+              Dashboard Admin
             </h1>
           </div>
-          <Button asChild>
-            <Link href="/admin/classes/new">Create Class</Link>
-          </Button>
+          <div className="flex gap-3">
+            <Button asChild>
+              <Link href="/admin/classes/new">Buat Kelas</Link>
+            </Button>
+          </div>
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Classes" value={stats.classCount} />
-          <MetricCard label="Registered Students" value={stats.studentCount} />
-          <MetricCard label="Pre-Tests" value={stats.preTestCount} />
-          <MetricCard label="Post-Tests" value={stats.postTestCount} />
+          <MetricCard label="Kelas" value={stats.classCount} icon={GraduationCap} />
+          <MetricCard
+            label="Student Terdaftar"
+            value={stats.studentCount}
+            icon={UsersRound}
+          />
+          <MetricCard
+            label="Pre-Tests"
+            value={stats.preTestCount}
+            icon={ClipboardCheck}
+          />
+          <MetricCard label="Post-Tests" value={stats.postTestCount} icon={Sparkles} />
         </section>
 
-        <Card className="bg-white">
+        <Card className="border-accent/30 bg-white/90">
           <CardHeader>
-            <CardTitle>Recent Classes</CardTitle>
+            <CardTitle className="[font-family:var(--font-playfair)]">
+              Kelas Terbaru
+            </CardTitle>
             <CardDescription>
-              Manage class codes, trainer assignments, and post-test access.
+              Kelola kode kelas, trainer, dan akses Post-Test.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -77,19 +91,19 @@ export default async function AdminPage() {
                     <Badge
                       variant={classItem.post_test_open ? "success" : "muted"}
                     >
-                      {classItem.post_test_open ? "Post-Test Open" : "Closed"}
+                      {classItem.post_test_open ? "Post-Test Dibuka" : "Ditutup"}
                     </Badge>
                   </div>
                 </Link>
               ))
             ) : (
               <div className="rounded-2xl border border-dashed bg-background p-6 text-center text-muted-foreground">
-                No classes yet. Create the first JBA class to start onboarding
-                students.
+                Belum ada kelas. Buat kelas JBA pertama untuk mulai onboarding
+                student.
               </div>
             )}
             <Button asChild variant="secondary">
-              <Link href="/admin/classes">View All Classes</Link>
+              <Link href="/admin/classes">Lihat Semua Kelas</Link>
             </Button>
           </CardContent>
         </Card>
@@ -98,12 +112,23 @@ export default async function AdminPage() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+function MetricCard({
+  label,
+  value,
+  icon: Icon
+}: {
+  label: string;
+  value: number;
+  icon: ComponentType<{ className?: string }>;
+}) {
   return (
-    <Card className="bg-white">
-      <CardHeader className="pb-3">
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-3xl text-primary">
+    <Card className="overflow-hidden border-accent/40 bg-white/90">
+      <CardHeader className="relative pb-4">
+        <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-2xl border border-accent/40 bg-accent/10">
+          <Icon className="h-5 w-5 text-accent" />
+        </div>
+        <CardDescription className="pr-12 font-semibold">{label}</CardDescription>
+        <CardTitle className="text-4xl text-primary [font-family:var(--font-playfair)]">
           {numberFormatter.format(value)}
         </CardTitle>
       </CardHeader>

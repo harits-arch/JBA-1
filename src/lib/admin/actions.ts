@@ -18,11 +18,30 @@ function getOptionalText(value: string | undefined) {
   return value?.trim() ? value.trim() : null;
 }
 
+function getTextValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : "";
+}
+
+function getAdminFormValues(formData: FormData, keys: string[]) {
+  return Object.fromEntries(keys.map((key) => [key, getTextValue(formData, key)]));
+}
+
 export async function createClassAction(
   _previousState: AdminFormState,
   formData: FormData
 ): Promise<AdminFormState> {
-  const admin = await requireAdminUser();
+  await requireAdminUser();
+  const values = getAdminFormValues(formData, [
+    "clientName",
+    "className",
+    "classCode",
+    "classDate",
+    "status",
+    "location",
+    "notes"
+  ]);
   const parsed = classFormSchema.safeParse({
     clientName: formData.get("clientName"),
     className: formData.get("className"),
@@ -36,8 +55,9 @@ export async function createClassAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Please check the highlighted fields.",
-      fieldErrors: parsed.error.flatten().fieldErrors
+      message: "Mohon periksa kembali kolom yang ditandai.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values
     };
   }
 
@@ -46,28 +66,53 @@ export async function createClassAction(
     : generateClassCode(parsed.data.clientName, parsed.data.classDate);
 
   const supabase = createSupabaseAdminClient();
+  const classPayload = {
+    client_name: parsed.data.clientName,
+    class_name: getOptionalText(parsed.data.className),
+    class_code: classCode,
+    class_date: parsed.data.classDate,
+    status: parsed.data.status,
+    location: getOptionalText(parsed.data.location),
+    notes: getOptionalText(parsed.data.notes),
+    created_by: null
+  };
   const { data: createdClass, error } = await supabase
     .from("classes")
-    .insert({
-      client_name: parsed.data.clientName,
-      class_name: getOptionalText(parsed.data.className),
-      class_code: classCode,
-      class_date: parsed.data.classDate,
-      status: parsed.data.status,
-      location: getOptionalText(parsed.data.location),
-      notes: getOptionalText(parsed.data.notes),
-      created_by: admin.id
-    })
+    .insert(classPayload)
     .select("id")
     .single();
+
+  if (error?.code === "23502" && error.message.includes('"name"')) {
+    const { data: legacyCreatedClass, error: legacyError } = await supabase
+      .from("classes")
+      .insert({
+        ...classPayload,
+        name: parsed.data.clientName
+      })
+      .select("id")
+      .single();
+
+    if (!legacyError) {
+      revalidatePath("/admin");
+      revalidatePath("/admin/classes");
+      redirect(`/admin/classes/${legacyCreatedClass.id}`);
+    }
+
+    return {
+      status: "error",
+      message: legacyError.message,
+      values
+    };
+  }
 
   if (error) {
     return {
       status: "error",
       message:
         error.code === "23505"
-          ? "That class code already exists. Please choose another code."
-          : error.message
+          ? "Kode kelas sudah ada. Mohon gunakan kode lain."
+          : error.message,
+      values
     };
   }
 
@@ -103,6 +148,12 @@ export async function addTrainerAction(
   formData: FormData
 ): Promise<AdminFormState> {
   await requireAdminUser();
+  const values = getAdminFormValues(formData, [
+    "classId",
+    "name",
+    "role",
+    "displayOrder"
+  ]);
   const parsed = trainerFormSchema.safeParse({
     classId: formData.get("classId"),
     name: formData.get("name"),
@@ -113,8 +164,9 @@ export async function addTrainerAction(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Please check the highlighted fields.",
-      fieldErrors: parsed.error.flatten().fieldErrors
+      message: "Mohon periksa kembali kolom yang ditandai.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+      values
     };
   }
 
@@ -129,7 +181,8 @@ export async function addTrainerAction(
   if (error) {
     return {
       status: "error",
-      message: error.message
+      message: error.message,
+      values
     };
   }
 
@@ -137,7 +190,7 @@ export async function addTrainerAction(
 
   return {
     status: "success",
-    message: "Trainer added."
+    message: "Trainer berhasil ditambahkan."
   };
 }
 

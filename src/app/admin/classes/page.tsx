@@ -23,21 +23,24 @@ export default async function ClassesPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-primary">Classes</h1>
+            <h1 className="text-4xl font-bold text-primary [font-family:var(--font-playfair)]">
+              Kelas
+            </h1>
             <p className="mt-2 text-muted-foreground">
-              Create classes, manage trainers, and control post-test access.
+              Buat kelas, kelola trainer, dan atur akses Post-Test.
             </p>
           </div>
           <Button asChild>
-            <Link href="/admin/classes/new">Create Class</Link>
+            <Link href="/admin/classes/new">Buat Kelas</Link>
           </Button>
         </header>
-        <Card className="bg-white">
+        <Card className="border-accent/30 bg-white/90">
           <CardHeader>
-            <CardTitle>Class Management</CardTitle>
+            <CardTitle className="[font-family:var(--font-playfair)]">
+              Manajemen Kelas
+            </CardTitle>
             <CardDescription>
-              Class codes are shared with client employees for student
-              registration.
+              Kode kelas dibagikan ke karyawan client untuk registrasi student.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -46,7 +49,7 @@ export default async function ClassesPage() {
                 <Link
                   key={classItem.id}
                   href={`/admin/classes/${classItem.id}`}
-                  className="grid gap-3 rounded-2xl border bg-background p-4 transition-colors hover:border-primary/40 lg:grid-cols-[1.2fr_0.9fr_0.9fr_auto]"
+                  className="grid gap-3 rounded-3xl border border-accent/20 bg-background/80 p-5 transition-colors hover:border-accent/70 lg:grid-cols-[1.2fr_0.9fr_0.9fr_auto]"
                 >
                   <div>
                     <h2 className="font-semibold text-primary">
@@ -58,7 +61,7 @@ export default async function ClassesPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Class Code
+                      Kode Kelas
                     </p>
                     <p className="font-mono text-sm font-semibold">
                       {classItem.class_code}
@@ -66,7 +69,7 @@ export default async function ClassesPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold uppercase text-muted-foreground">
-                      Date
+                      Tanggal
                     </p>
                     <p className="text-sm">{classItem.class_date}</p>
                   </div>
@@ -75,22 +78,22 @@ export default async function ClassesPage() {
                     <Badge
                       variant={classItem.post_test_open ? "success" : "muted"}
                     >
-                      {classItem.post_test_open ? "Post-Test Open" : "Closed"}
+                      {classItem.post_test_open ? "Post-Test Dibuka" : "Ditutup"}
                     </Badge>
                     <Badge variant="secondary">
-                      {classItem.trainers.length} Trainers
+                      {classItem.trainers.length} Trainer
                     </Badge>
                     <Badge variant="secondary">
-                      {classItem.class_registrations.length} Students
+                      {classItem.class_registrations.length} Student
                     </Badge>
                   </div>
                 </Link>
               ))
             ) : (
               <div className="rounded-2xl border border-dashed bg-background p-8 text-center">
-                <p className="font-semibold text-primary">No classes yet</p>
+                <p className="font-semibold text-primary">Belum ada kelas</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Create a class to generate a registration code for students.
+                  Buat kelas untuk menghasilkan kode registrasi student.
                 </p>
               </div>
             )}

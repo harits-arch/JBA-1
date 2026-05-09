@@ -1,17 +1,13 @@
 import { redirect } from "next/navigation";
 
-import { getCurrentUserFromSession } from "@/lib/auth/session";
+import { getAdminSession } from "@/lib/admin/auth";
 
 export async function requireAdminUser() {
-  const user = await getCurrentUserFromSession();
+  const adminSession = await getAdminSession();
 
-  if (!user) {
-    redirect("/login");
+  if (!adminSession) {
+    redirect("/admin/login");
   }
 
-  if (user.role !== "admin") {
-    redirect("/class/register");
-  }
-
-  return user;
+  return adminSession;
 }

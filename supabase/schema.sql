@@ -17,6 +17,8 @@ create table if not exists public.users (
   full_name text,
   phone text unique,
   email text,
+  password_hash text,
+  phone_verified_at timestamptz,
   gender text check (gender in ('female', 'male')),
   date_of_birth date,
   instagram_username text,
@@ -28,6 +30,19 @@ create table if not exists public.users (
 create trigger users_set_updated_at
 before update on public.users
 for each row execute function public.set_updated_at();
+
+create table if not exists public.auth_otps (
+  id uuid primary key default gen_random_uuid(),
+  phone text not null,
+  otp_hash text not null,
+  expires_at timestamptz not null,
+  consumed_at timestamptz,
+  attempts integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists auth_otps_phone_idx on public.auth_otps (phone);
+create index if not exists auth_otps_expires_at_idx on public.auth_otps (expires_at);
 
 create table if not exists public.classes (
   id uuid primary key default gen_random_uuid(),
@@ -122,6 +137,7 @@ create index if not exists post_test_submissions_class_id_idx on public.post_tes
 create index if not exists trainer_ratings_submission_id_idx on public.trainer_ratings (post_test_submission_id);
 
 alter table public.users enable row level security;
+alter table public.auth_otps enable row level security;
 alter table public.classes enable row level security;
 alter table public.trainers enable row level security;
 alter table public.class_registrations enable row level security;
