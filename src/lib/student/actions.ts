@@ -94,6 +94,8 @@ export async function registerForClassAction(
 
   revalidatePath("/class/register");
   revalidatePath("/student/dashboard");
+  revalidatePath("/admin/students");
+  revalidatePath("/admin");
   redirect("/student/dashboard");
 }
 
@@ -198,6 +200,7 @@ export async function submitPreTestAction(
         values
       };
     }
+
   } else {
     const parsed = malePreTestSchema.safeParse({
       ...basePayload,
@@ -262,11 +265,13 @@ export async function submitPreTestAction(
         values
       };
     }
+
   }
 
   revalidatePath("/pre-test");
   revalidatePath("/waiting");
   revalidatePath("/student/dashboard");
+  revalidatePath("/admin/gallery");
   redirect("/student/dashboard");
 }
 
@@ -404,6 +409,8 @@ export async function submitPostTestAction(
   revalidatePath("/post-test");
   revalidatePath("/waiting");
   revalidatePath("/student/dashboard");
+  revalidatePath("/admin/gallery");
+  revalidatePath("/admin/feedback");
   redirect("/student/dashboard");
 }
 

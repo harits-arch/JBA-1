@@ -46,19 +46,18 @@ export default async function ClassesPage() {
           <CardContent className="space-y-3">
             {classes.length > 0 ? (
               classes.map((classItem) => (
-                <Link
+                <div
                   key={classItem.id}
-                  href={`/admin/classes/${classItem.id}`}
-                  className="grid gap-3 rounded-3xl border border-accent/20 bg-background/80 p-5 transition-colors hover:border-accent/70 lg:grid-cols-[1.2fr_0.9fr_0.9fr_auto]"
+                  className="grid gap-3 rounded-3xl border border-accent/20 bg-background/80 p-5 transition-colors hover:border-accent/70 lg:grid-cols-[1.2fr_0.9fr_0.9fr_auto_auto]"
                 >
-                  <div>
+                  <Link href={`/admin/classes/${classItem.id}`} className="min-w-0">
                     <h2 className="font-semibold text-primary">
                       {classItem.client_name}
                     </h2>
                     <p className="text-sm text-muted-foreground">
                       {classItem.class_name ?? "JBA Grooming Class"}
                     </p>
-                  </div>
+                  </Link>
                   <div>
                     <p className="text-xs font-semibold uppercase text-muted-foreground">
                       Kode Kelas
@@ -87,7 +86,14 @@ export default async function ClassesPage() {
                       {classItem.class_registrations.length} Student
                     </Badge>
                   </div>
-                </Link>
+                  <div className="flex items-start gap-2 lg:justify-end">
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/admin/classes/${classItem.id}/edit`}>
+                        Edit
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
               ))
             ) : (
               <div className="rounded-2xl border border-dashed bg-background p-8 text-center">

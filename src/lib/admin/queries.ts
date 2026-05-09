@@ -277,3 +277,368 @@ export async function createSubmissionPhotoUrl(path: string | null) {
 
   return fallbackData.signedUrl;
 }
+
+export type AdminStudentDirectoryRow = {
+  userId: string;
+  fullName: string | null;
+  phone: string | null;
+  /** Human-readable class labels, e.g. "Client – CODE" */
+  classes: string[];
+};
+
+type ClassEmbed = {
+  client_name: string | null;
+  class_code: string | null;
+} | null;
+
+type RegistrationEmbed = {
+  class_id: string;
+  classes: ClassEmbed;
+};
+
+type UserWithRegs = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  class_registrations: RegistrationEmbed[] | null;
+};
+
+export async function getAllStudentsDirectory(): Promise<AdminStudentDirectoryRow[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select(
+      `
+      id,
+      full_name,
+      phone,
+      class_registrations(
+        class_id,
+        classes(client_name, class_code)
+      )
+    `
+    )
+    .eq("role", "student")
+    .order("full_name", { ascending: true, nullsFirst: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const rows = (data ?? []) as unknown as UserWithRegs[];
+
+  return rows.map((user) => {
+    const regs = user.class_registrations ?? [];
+    const classes = regs.map((r) => {
+      const c = r.classes;
+      const name = c?.client_name?.trim() || "Kelas";
+      const code = c?.class_code?.trim() || "";
+      return code ? `${name} – ${code}` : name;
+    });
+
+    return {
+      userId: user.id,
+      fullName: user.full_name,
+      phone: user.phone,
+      classes
+    };
+  });
+}
+
+export type AdminGlobalGalleryRow = {
+  id: string;
+  studentName: string;
+  phone: string | null;
+  classLabel: string;
+  beforePhotoUrl: string | null;
+  afterPhotoUrl: string | null;
+};
+
+export async function getGlobalGalleryRows(): Promise<AdminGlobalGalleryRow[]> {
+  const supabase = createSupabaseAdminClient();
+  const [{ data: preRows, error: preErr }, { data: postRows, error: postErr }] =
+    await Promise.all([
+      supabase
+        .from("pre_test_submissions")
+        .select(
+          `
+        user_id,
+        class_id,
+        before_photo_path,
+        users(full_name, phone),
+        classes(client_name, class_code)
+      `
+        )
+        .order("submitted_at", { ascending: false }),
+      supabase
+        .from("post_test_submissions")
+        .select(
+          `
+        user_id,
+        class_id,
+        after_photo_path,
+        users(full_name, phone),
+        classes(client_name, class_code)
+      `
+        )
+        .order("submitted_at", { ascending: false })
+    ]);
+
+  const err = preErr ?? postErr;
+  if (err) {
+    throw err;
+  }
+
+  type SubRow = {
+    user_id: string;
+    class_id: string;
+    before_photo_path?: string;
+    after_photo_path?: string;
+    users: { full_name: string | null; phone: string | null } | null;
+    classes: ClassEmbed;
+  };
+
+  const merged = new Map<
+    string,
+    {
+      userId: string;
+      classId: string;
+      studentName: string;
+      phone: string | null;
+      classLabel: string;
+      beforePath: string | null;
+      afterPath: string | null;
+    }
+  >();
+
+  const classLabelFrom = (c: ClassEmbed) => {
+    const name = c?.client_name?.trim() || "Kelas";
+    const code = c?.class_code?.trim() || "";
+    return code ? `${name} – ${code}` : name;
+  };
+
+  for (const raw of (preRows ?? []) as unknown as SubRow[]) {
+    const key = `${raw.user_id}:${raw.class_id}`;
+    const prev = merged.get(key);
+    merged.set(key, {
+      userId: raw.user_id,
+      classId: raw.class_id,
+      studentName: raw.users?.full_name ?? "Student Tanpa Nama",
+      phone: raw.users?.phone ?? null,
+      classLabel: classLabelFrom(raw.classes),
+      beforePath: raw.before_photo_path ?? null,
+      afterPath: prev?.afterPath ?? null
+    });
+  }
+
+  for (const raw of (postRows ?? []) as unknown as SubRow[]) {
+    const key = `${raw.user_id}:${raw.class_id}`;
+    const prev = merged.get(key);
+    merged.set(key, {
+      userId: raw.user_id,
+      classId: raw.class_id,
+      studentName:
+        prev?.studentName ?? raw.users?.full_name ?? "Student Tanpa Nama",
+      phone: prev?.phone ?? raw.users?.phone ?? null,
+      classLabel: prev?.classLabel ?? classLabelFrom(raw.classes),
+      beforePath: prev?.beforePath ?? null,
+      afterPath: raw.after_photo_path ?? null
+    });
+  }
+
+  const entries = [...merged.values()].filter(
+    (e) => e.beforePath || e.afterPath
+  );
+
+  const withUrls: AdminGlobalGalleryRow[] = await Promise.all(
+    entries.map(async (e) => {
+      const [beforePhotoUrl, afterPhotoUrl] = await Promise.all([
+        createSubmissionPhotoUrl(e.beforePath),
+        createSubmissionPhotoUrl(e.afterPath)
+      ]);
+
+      return {
+        id: `${e.userId}-${e.classId}`,
+        studentName: e.studentName,
+        phone: e.phone,
+        classLabel: e.classLabel,
+        beforePhotoUrl,
+        afterPhotoUrl
+      };
+    })
+  );
+
+  return withUrls;
+}
+
+export type GlobalFeedbackItem = {
+  id: string;
+  studentName: string;
+  classLabel: string;
+  submittedAt: string;
+  likedMost: string | null;
+  improvementFeedback: string | null;
+  nextSteps: string | null;
+  testimonial: string | null;
+  trainerRatings: Array<{
+    id: string;
+    rating: number;
+    trainerName: string;
+    trainerRole: string;
+  }>;
+};
+
+export async function getGlobalFeedbackItems(): Promise<GlobalFeedbackItem[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data: submissions, error } = await supabase
+    .from("post_test_submissions")
+    .select(
+      `
+      id,
+      submitted_at,
+      liked_most,
+      improvement_feedback,
+      next_steps,
+      testimonial,
+      users(full_name),
+      classes(client_name, class_code),
+      trainer_ratings(
+        id,
+        rating,
+        trainers(id, name, role)
+      )
+    `
+    )
+    .order("submitted_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  type RawPost = {
+    id: string;
+    submitted_at: string;
+    liked_most: string | null;
+    improvement_feedback: string | null;
+    next_steps: string | null;
+    testimonial: string | null;
+    users: { full_name: string | null } | null;
+    classes: ClassEmbed;
+    trainer_ratings: Array<
+      TrainerRatingRow & {
+        trainers: Pick<TrainerRow, "id" | "name" | "role"> | null;
+      }
+    >;
+  };
+
+  return ((submissions ?? []) as unknown as RawPost[]).map((submission) => {
+    const c = submission.classes;
+    const name = c?.client_name?.trim() || "Kelas";
+    const code = c?.class_code?.trim() || "";
+    const classLabel = code ? `${name} – ${code}` : name;
+
+    return {
+      id: submission.id,
+      studentName: submission.users?.full_name ?? "Student Tanpa Nama",
+      classLabel,
+      submittedAt: submission.submitted_at,
+      likedMost: submission.liked_most,
+      improvementFeedback: submission.improvement_feedback,
+      nextSteps: submission.next_steps,
+      testimonial: submission.testimonial,
+      trainerRatings: submission.trainer_ratings.map((rating) => ({
+        id: rating.id,
+        rating: rating.rating,
+        trainerName: rating.trainers?.name ?? "Trainer",
+        trainerRole: rating.trainers?.role ?? "-"
+      }))
+    };
+  });
+}
+
+export type AdminTrainerDirectoryRow = {
+  id: string;
+  name: string;
+  role: string;
+  display_order: number;
+  class_id: string;
+  classes: { client_name: string | null; class_code: string | null } | null;
+};
+
+export async function getAllTrainersDirectory(): Promise<
+  AdminTrainerDirectoryRow[]
+> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("trainers")
+    .select(
+      `
+      id,
+      name,
+      role,
+      display_order,
+      class_id,
+      classes(client_name, class_code)
+    `
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as unknown as AdminTrainerDirectoryRow[];
+}
+
+export async function getStudentForAdminEdit(userId: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", userId)
+    .eq("role", "student")
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getTrainerForAdminEdit(trainerId: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("trainers")
+    .select(
+      `
+      *,
+      classes(client_name, class_code)
+    `
+    )
+    .eq("id", trainerId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as (TrainerRow & {
+    classes: { client_name: string | null; class_code: string | null } | null;
+  }) | null;
+}
+
+export async function getClassRowForEdit(classId: string) {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("classes")
+    .select("*")
+    .eq("id", classId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data as ClassRow | null;
+}

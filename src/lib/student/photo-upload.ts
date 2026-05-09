@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-const maxPhotoSizeBytes = 5 * 1024 * 1024;
+/** Upper bound for the file that reaches the server (after optional client compress). */
+const maxPhotoSizeBytes = 64 * 1024 * 1024;
 const allowedPhotoTypes = ["image/jpeg", "image/png", "image/webp"];
 
 export function validatePhotoUpload(file: File | null, label = "Foto") {
@@ -13,7 +14,7 @@ export function validatePhotoUpload(file: File | null, label = "Foto") {
   }
 
   if (file.size > maxPhotoSizeBytes) {
-    return `${label} maksimal 5MB.`;
+    return `${label} terlalu besar (maksimal 64MB).`;
   }
 
   return null;

@@ -153,7 +153,7 @@ values (
   'submission-photos',
   'submission-photos',
   false,
-  5242880,
+  67108864,
   array['image/jpeg', 'image/png', 'image/webp']
 )
 on conflict (id) do update

@@ -120,9 +120,14 @@ export default async function ClassDetailPage({
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <Button asChild variant="ghost">
-            <Link href="/admin/classes">Kembali ke Kelas</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="ghost">
+              <Link href="/admin/classes">Kembali ke Kelas</Link>
+            </Button>
+            <Button asChild variant="secondary">
+              <Link href={`/admin/classes/${id}/edit`}>Edit kelas</Link>
+            </Button>
+          </div>
           <PostTestToggleForm
             classId={classData.id}
             postTestOpen={classData.post_test_open}
@@ -192,7 +197,10 @@ export default async function ClassDetailPage({
           feedbackItems={feedbackItems}
         />
 
-        <Card className="border-accent/30 bg-white/90">
+        <Card
+          id="trainers-section"
+          className="scroll-mt-24 border-accent/30 bg-white/90"
+        >
           <CardHeader>
             <CardTitle className="[font-family:var(--font-playfair)]">
               Trainer & Rating Tim

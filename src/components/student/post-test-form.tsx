@@ -1,12 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import type { FormEvent, ReactNode } from "react";
+import { useActionState, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { compressSubmissionPhoto } from "@/lib/student/compress-submission-photo";
 import { submitPostTestAction } from "@/lib/student/actions";
 import type { StudentFormState } from "@/lib/student/schema";
 import type { Database } from "@/types/database";
@@ -24,11 +24,44 @@ export function PostTestForm({
   classId: string;
   trainers: Trainer[];
 }) {
-  const [state, formAction] = useActionState(submitPostTestAction, initialState);
+  const [isSubmitPending, startSubmitTransition] = useTransition();
+  const [state, formAction] = useActionState(
+    submitPostTestAction,
+    initialState
+  );
+  const [clientMessage, setClientMessage] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const values = state.values ?? {};
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setClientMessage(null);
+    const formEl = event.currentTarget;
+    setIsCompressing(true);
+    try {
+      const formData = new FormData(formEl);
+      const raw = formData.get("afterPhoto");
+      if (raw instanceof File && raw.size > 0) {
+        try {
+          const compressed = await compressSubmissionPhoto(raw);
+          formData.set("afterPhoto", compressed);
+        } catch {
+          setClientMessage(
+            "Gagal memproses foto. Coba gambar lain atau pastikan format JPG, PNG, atau WEBP."
+          );
+          return;
+        }
+      }
+      startSubmitTransition(() => {
+        formAction(formData);
+      });
+    } finally {
+      setIsCompressing(false);
+    }
+  }
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <input type="hidden" name="classId" value={classId} />
 
       <QuestionSection
@@ -42,7 +75,10 @@ export function PostTestForm({
           accept="image/png,image/jpeg,image/webp"
           className="block w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
         />
-        <p className="text-xs text-muted-foreground">JPG, PNG, atau WEBP. Maksimal 5MB.</p>
+        <p className="text-xs text-muted-foreground">
+          JPG, PNG, atau WEBP. Foto dikompres otomatis di perangkat (target ~200KB)
+          sebelum unggah.
+        </p>
       </QuestionSection>
 
       <QuestionSection
@@ -142,13 +178,19 @@ export function PostTestForm({
         <FieldError errors={state.fieldErrors?.contentConsent} />
       </QuestionSection>
 
+      {clientMessage ? (
+        <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {clientMessage}
+        </p>
+      ) : null}
+
       {state.message ? (
         <p className="rounded-2xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
           {state.message}
         </p>
       ) : null}
 
-      <SubmitButton />
+      <SubmitButton busy={isSubmitPending || isCompressing} />
     </form>
   );
 }
@@ -233,12 +275,10 @@ function RadioGroup({
   );
 }
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
+function SubmitButton({ busy }: { busy: boolean }) {
   return (
-    <Button className="w-full" size="lg" disabled={pending}>
-      {pending ? "Mengirim..." : "Kirim Post-Test"}
+    <Button className="w-full" size="lg" disabled={busy}>
+      {busy ? "Memproses..." : "Kirim Post-Test"}
     </Button>
   );
 }
