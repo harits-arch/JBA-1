@@ -91,6 +91,11 @@ export default async function ClassDetailPage({
                   View Students
                 </Link>
               </Button>
+              <Button asChild variant="secondary">
+                <Link href={`/admin/classes/${classData.id}/submissions`}>
+                  View Submissions
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         </section>

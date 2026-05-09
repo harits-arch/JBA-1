@@ -32,10 +32,13 @@ Apply the initial Supabase schema from `supabase/schema.sql`.
 - Firebase Phone OTP student login
 - HTTP-only Firebase session cookie for server-side route protection
 - Supabase-backed profile onboarding
-- Protected class registration entry point
+- Protected class registration with class-code locking
+- Gender-specific pre-test forms with private BEFORE photo uploads
 - Protected admin dashboard with class creation, trainer assignment, post-test
-  toggle, and registered student viewer
-- Placeholder pre-test, waiting, and post-test pages
+  toggle, registered student viewer, and submission viewer
+- Waiting area after pre-test submission
+- Post-test form with AFTER photo upload, dynamic trainer ratings, feedback,
+  recommendation, testimonial, and content consent
 - Firebase client/admin helpers
 - Supabase browser/server/admin clients
 - Initial database schema and storage bucket definition
@@ -80,3 +83,35 @@ The admin dashboard currently supports:
 - Opening or closing post-test access per class
 - Adding/removing trainers, MCs, and partner team members per class
 - Viewing registered students for a class
+- Viewing pre-test and post-test submissions with signed BEFORE/AFTER photo
+  links
+
+## Student Flow Notes
+
+Students must complete phone OTP login and onboarding before class
+registration. The class registration page accepts active/draft `class_code`
+values from Supabase and locks the student into their first class registration.
+
+The pre-test page renders fields from the student's `users.gender`:
+
+- Female students answer grooming frequency, activities, expectations,
+  obstacles, mandatory commitments, and upload a BEFORE photo.
+- Male students answer grooming frequency, grooming habits, expectations,
+  obstacles, mandatory commitments, skin type, social media willingness,
+  upload timeline, and upload a BEFORE photo.
+
+BEFORE photos are uploaded to the private `submission-photos` bucket at:
+
+```text
+classes/{class_id}/students/{user_id}/before.{ext}
+```
+
+Post-test access is controlled by the class admin toggle. When open, students
+upload an AFTER photo, rate every assigned trainer/team member, submit feedback,
+choose a recommendation, write a testimonial, and select content consent.
+
+AFTER photos are uploaded to:
+
+```text
+classes/{class_id}/students/{user_id}/after.{ext}
+```

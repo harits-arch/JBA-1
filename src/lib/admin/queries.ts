@@ -5,6 +5,9 @@ import type { Database } from "@/types/database";
 
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
 type TrainerRow = Database["public"]["Tables"]["trainers"]["Row"];
+type PreTestRow = Database["public"]["Tables"]["pre_test_submissions"]["Row"];
+type PostTestRow = Database["public"]["Tables"]["post_test_submissions"]["Row"];
+type TrainerRatingRow = Database["public"]["Tables"]["trainer_ratings"]["Row"];
 
 export type AdminClassListItem = ClassRow & {
   trainers: { id: string }[];
@@ -24,6 +27,28 @@ export type RegisteredStudent = {
     instagram_username: string | null;
     profile_completed: boolean;
   } | null;
+};
+
+export type AdminSubmissionStudent = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  email: string | null;
+  gender: string | null;
+  instagram_username: string | null;
+};
+
+export type AdminPreTestSubmission = PreTestRow & {
+  users: AdminSubmissionStudent | null;
+};
+
+export type AdminPostTestSubmission = PostTestRow & {
+  users: AdminSubmissionStudent | null;
+  trainer_ratings: Array<
+    TrainerRatingRow & {
+      trainers: Pick<TrainerRow, "id" | "name" | "role"> | null;
+    }
+  >;
 };
 
 export async function getAdminDashboardStats() {
@@ -168,4 +193,79 @@ export async function getRegisteredStudents(classId: string) {
   }
 
   return (registrations ?? []) as unknown as RegisteredStudent[];
+}
+
+export async function getClassSubmissions(classId: string) {
+  const supabase = createSupabaseAdminClient();
+  const [
+    { data: preTests, error: preTestError },
+    { data: postTests, error: postTestError }
+  ] = await Promise.all([
+    supabase
+      .from("pre_test_submissions")
+      .select(
+        `
+        *,
+        users(
+          id,
+          full_name,
+          phone,
+          email,
+          gender,
+          instagram_username
+        )
+      `
+      )
+      .eq("class_id", classId)
+      .order("submitted_at", { ascending: false }),
+    supabase
+      .from("post_test_submissions")
+      .select(
+        `
+        *,
+        users(
+          id,
+          full_name,
+          phone,
+          email,
+          gender,
+          instagram_username
+        ),
+        trainer_ratings(
+          *,
+          trainers(id, name, role)
+        )
+      `
+      )
+      .eq("class_id", classId)
+      .order("submitted_at", { ascending: false })
+  ]);
+
+  const error = preTestError ?? postTestError;
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    preTests: (preTests ?? []) as unknown as AdminPreTestSubmission[],
+    postTests: (postTests ?? []) as unknown as AdminPostTestSubmission[]
+  };
+}
+
+export async function createSubmissionPhotoUrl(path: string | null) {
+  if (!path) {
+    return null;
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase.storage
+    .from("submission-photos")
+    .createSignedUrl(path, 60 * 60);
+
+  if (error) {
+    throw error;
+  }
+
+  return data.signedUrl;
 }
