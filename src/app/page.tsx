@@ -57,9 +57,6 @@ export default function Home() {
                   Mulai sebagai Student <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="secondary" size="lg">
-                <Link href="/admin/login">Buka Dashboard Admin</Link>
-              </Button>
             </div>
           </div>
 
