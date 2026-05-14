@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  resolveStudentActiveRegistration,
+  setActiveClassCookie
+} from "@/lib/student/active-class";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireStudentUser } from "@/lib/student/guards";
 import {
@@ -11,9 +15,16 @@ import {
   validatePhotoUpload
 } from "@/lib/student/photo-upload";
 import {
+  buildPostTestProgressSummary,
+  getWibEntryDate,
+  POST_TEST_MAX_PROGRESS_ENTRIES
+} from "@/lib/student/post-test-progress";
+import {
   getClassTrainersForStudent,
-  getStudentCurrentRegistration,
-  getStudentPreTestSubmission
+  getStudentPostTestProgressEntries,
+  getStudentPostTestSubmission,
+  getStudentPreTestSubmission,
+  getStudentRegistrationForClass
 } from "@/lib/student/queries";
 import {
   classRegistrationSchema,
@@ -34,12 +45,6 @@ export async function registerForClassAction(
   const values = {
     classCode: String(formData.get("classCode") ?? "")
   };
-  const existingRegistration = await getStudentCurrentRegistration(user.id);
-
-  if (existingRegistration) {
-    redirect("/student/dashboard");
-  }
-
   const parsed = classRegistrationSchema.safeParse({
     classCode: formData.get("classCode")
   });
@@ -77,6 +82,18 @@ export async function registerForClassAction(
     };
   }
 
+  const existingForClass = await getStudentRegistrationForClass(
+    user.id,
+    classData.id
+  );
+
+  if (existingForClass) {
+    await setActiveClassCookie(classData.id);
+    revalidatePath("/class/register");
+    revalidatePath("/student/dashboard");
+    redirect("/student/dashboard");
+  }
+
   const { error: registrationError } = await supabase
     .from("class_registrations")
     .insert({
@@ -92,10 +109,29 @@ export async function registerForClassAction(
     };
   }
 
+  await setActiveClassCookie(classData.id);
+
   revalidatePath("/class/register");
   revalidatePath("/student/dashboard");
   revalidatePath("/admin/students");
   revalidatePath("/admin");
+  redirect("/student/dashboard");
+}
+
+export async function switchActiveClassAction(formData: FormData) {
+  const user = await requireStudentUser();
+  const classId = String(formData.get("classId") ?? "");
+  const registration = await getStudentRegistrationForClass(user.id, classId);
+
+  if (!registration) {
+    redirect("/student/dashboard");
+  }
+
+  await setActiveClassCookie(classId);
+  revalidatePath("/student/dashboard");
+  revalidatePath("/pre-test");
+  revalidatePath("/post-test");
+  revalidatePath("/waiting");
   redirect("/student/dashboard");
 }
 
@@ -294,7 +330,7 @@ export async function submitPostTestAction(
     };
   }
 
-  const registration = await getStudentCurrentRegistration(user.id);
+  const registration = await resolveStudentActiveRegistration(user.id);
 
   if (!registration?.classes || registration.class_id !== classId) {
     redirect("/student/dashboard");
@@ -327,7 +363,7 @@ export async function submitPostTestAction(
   }
 
   if (existingPostTest) {
-    redirect("/student/dashboard");
+    redirect("/post-test");
   }
 
   const trainers = await getClassTrainersForStudent(classId);
@@ -411,14 +447,144 @@ export async function submitPostTestAction(
   revalidatePath("/student/dashboard");
   revalidatePath("/admin/gallery");
   revalidatePath("/admin/feedback");
-  redirect("/student/dashboard");
+  revalidatePath("/admin/classes");
+  redirect("/post-test");
+}
+
+export async function submitPostTestProgressAction(
+  _previousState: StudentFormState,
+  formData: FormData
+): Promise<StudentFormState> {
+  const user = await requireStudentUser();
+  const classId = String(formData.get("classId") ?? "");
+  const afterPhoto = formData.get("afterPhoto");
+  const photoFile = afterPhoto instanceof File ? afterPhoto : null;
+  const photoError = validatePhotoUpload(photoFile, "Foto progress");
+
+  if (photoError || !photoFile) {
+    return {
+      status: "error",
+      message: photoError ?? "Foto progress wajib diunggah."
+    };
+  }
+
+  const gateError = await ensurePostTestProgressCanBeSubmitted(user.id, classId);
+
+  if (gateError) {
+    return gateError;
+  }
+
+  const [initialSubmission, progressEntries] = await Promise.all([
+    getStudentPostTestSubmission(user.id, classId),
+    getStudentPostTestProgressEntries(user.id, classId)
+  ]);
+
+  if (!initialSubmission) {
+    redirect("/post-test");
+  }
+
+  const summary = buildPostTestProgressSummary({
+    initialSubmission,
+    progressEntries
+  });
+
+  if (summary.isComplete) {
+    return {
+      status: "error",
+      message: "Kamu sudah menyelesaikan 14 kali submission Post-Test."
+    };
+  }
+
+  if (!summary.canSubmitToday) {
+    return {
+      status: "error",
+      message: "Kamu sudah mengirim foto hari ini. Coba lagi besok (WIB)."
+    };
+  }
+
+  if (progressEntries.length >= POST_TEST_MAX_PROGRESS_ENTRIES) {
+    return {
+      status: "error",
+      message: "Batas 14 kali submission Post-Test sudah tercapai."
+    };
+  }
+
+  const entryDate = getWibEntryDate();
+  const afterPhotoPath = await uploadAfterPhoto({
+    file: photoFile,
+    classId,
+    userId: user.id,
+    entryDate
+  });
+
+  const supabase = createSupabaseAdminClient();
+  const { error: insertError } = await supabase
+    .from("post_test_progress_entries")
+    .insert({
+      user_id: user.id,
+      class_id: classId,
+      after_photo_path: afterPhotoPath,
+      entry_date: entryDate
+    });
+
+  if (insertError) {
+    if (insertError.code === "23505") {
+      return {
+        status: "error",
+        message: "Kamu sudah mengirim foto hari ini. Coba lagi besok (WIB)."
+      };
+    }
+
+    if (insertError.code === "42P01") {
+      return {
+        status: "error",
+        message:
+          "Fitur progress harian belum aktif di database. Hubungi admin JBA."
+      };
+    }
+
+    return {
+      status: "error",
+      message: insertError.message
+    };
+  }
+
+  revalidatePath("/post-test");
+  revalidatePath("/waiting");
+  revalidatePath("/student/dashboard");
+  revalidatePath("/admin/gallery");
+  revalidatePath("/admin/classes");
+  redirect("/post-test");
+}
+
+async function ensurePostTestProgressCanBeSubmitted(
+  userId: string,
+  classId: string
+): Promise<StudentFormState | null> {
+  const registration = await resolveStudentActiveRegistration(userId);
+
+  if (!registration?.classes || registration.class_id !== classId) {
+    redirect("/student/dashboard");
+  }
+
+  if (!registration.classes.post_test_open) {
+    redirect("/student/dashboard");
+  }
+
+  const preTestSubmission = await getStudentPreTestSubmission(userId, classId);
+
+  if (!preTestSubmission) {
+    redirect("/pre-test");
+  }
+
+  return null;
 }
 
 async function ensurePreTestCanBeSubmitted(
   userId: string,
   classId: string
 ): Promise<StudentFormState | null> {
-  const registration = await getStudentCurrentRegistration(userId);
+  const registration = await resolveStudentActiveRegistration(userId);
 
   if (!registration || registration.class_id !== classId) {
     redirect("/student/dashboard");

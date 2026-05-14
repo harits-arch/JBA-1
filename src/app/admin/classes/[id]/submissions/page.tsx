@@ -39,6 +39,12 @@ export default async function ClassSubmissionsPage({
       createSubmissionPhotoUrl(submission.after_photo_path)
     )
   );
+  const progressPhotoUrls = await Promise.all(
+    submissions.progressEntries.map((entry) =>
+      createSubmissionPhotoUrl(entry.after_photo_path)
+    )
+  );
+  const progressByUser = groupProgressEntriesByUser(submissions.progressEntries);
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -65,11 +71,8 @@ export default async function ClassSubmissionsPage({
             <Metric label="Pre-Tests" value={submissions.preTests.length} />
             <Metric label="Post-Tests" value={submissions.postTests.length} />
             <Metric
-              label="Belum Post-Test"
-              value={Math.max(
-                submissions.preTests.length - submissions.postTests.length,
-                0
-              )}
+              label="Foto Progress Harian"
+              value={submissions.progressEntries.length}
             />
           </CardContent>
         </Card>
@@ -203,9 +206,96 @@ export default async function ClassSubmissionsPage({
             )}
           </CardContent>
         </Card>
+
+        <Card className="bg-white">
+          <CardHeader>
+            <CardTitle>Rekap Foto Progress Harian</CardTitle>
+            <CardDescription>
+              Submission ke-2 sampai ke-14 (foto saja, maks 1 per hari WIB).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {progressByUser.length > 0 ? (
+              progressByUser.map((group) => (
+                <div
+                  key={group.userId}
+                  className="space-y-3 rounded-3xl border bg-background p-4"
+                >
+                  <SubmissionHeader
+                    name={group.name}
+                    phone={group.phone}
+                    submittedAt={`${group.entries.length} foto progress`}
+                    gender={group.gender}
+                  />
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {group.entries.map((entry) => {
+                      const urlIndex = submissions.progressEntries.findIndex(
+                        (item) => item.id === entry.id
+                      );
+                      return (
+                        <div
+                          key={entry.id}
+                          className="rounded-2xl border bg-white p-3 text-sm"
+                        >
+                          <p className="font-medium text-primary">
+                            {entry.entry_date} (WIB)
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Dikirim {entry.submitted_at}
+                          </p>
+                          <div className="mt-3">
+                            <PhotoButton
+                              href={progressPhotoUrls[urlIndex] ?? null}
+                              label="Lihat Foto Progress"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <EmptyState label="Belum ada foto progress harian." />
+            )}
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
+}
+
+function groupProgressEntriesByUser(
+  entries: Awaited<ReturnType<typeof getClassSubmissions>>["progressEntries"]
+) {
+  const groups = new Map<
+    string,
+    {
+      userId: string;
+      name: string | null | undefined;
+      phone: string | null | undefined;
+      gender: string | null | undefined;
+      entries: typeof entries;
+    }
+  >();
+
+  for (const entry of entries) {
+    const existing = groups.get(entry.user_id);
+    if (existing) {
+      existing.entries.push(entry);
+      continue;
+    }
+
+    groups.set(entry.user_id, {
+      userId: entry.user_id,
+      name: entry.users?.full_name,
+      phone: entry.users?.phone,
+      gender: entry.users?.gender,
+      entries: [entry]
+    });
+  }
+
+  return Array.from(groups.values());
 }
 
 function Metric({ label, value }: { label: string; value: number }) {

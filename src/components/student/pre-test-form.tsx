@@ -5,6 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { PhotoSourceInput } from "@/components/student/photo-source-input";
 import { Textarea } from "@/components/ui/textarea";
 import { compressSubmissionPhoto } from "@/lib/student/compress-submission-photo";
 import { submitPreTestAction } from "@/lib/student/actions";
@@ -288,17 +289,7 @@ export function PreTestForm({
             : "Unggah foto wajah natural dari depan yang jelas tanpa edit atau filter."
         }
       >
-        <input
-          name="beforePhoto"
-          type="file"
-          required
-          accept="image/png,image/jpeg,image/webp"
-          className="block w-full rounded-2xl border border-input bg-background px-4 py-3 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary-foreground"
-        />
-        <p className="text-xs text-muted-foreground">
-          JPG, PNG, atau WEBP. Foto dikompres otomatis di perangkat (target ~200KB)
-          sebelum unggah.
-        </p>
+        <PhotoSourceInput name="beforePhoto" required />
       </QuestionSection>
 
       {clientMessage ? (

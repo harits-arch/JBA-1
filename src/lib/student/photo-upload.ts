@@ -40,17 +40,20 @@ export async function uploadBeforePhoto({
 export async function uploadAfterPhoto({
   file,
   classId,
-  userId
+  userId,
+  entryDate
 }: {
   file: File;
   classId: string;
   userId: string;
+  entryDate?: string;
 }) {
   return uploadSubmissionPhoto({
     file,
     classId,
     userId,
-    kind: "after"
+    kind: "after",
+    entryDate
   });
 }
 
@@ -58,21 +61,26 @@ async function uploadSubmissionPhoto({
   file,
   classId,
   userId,
-  kind
+  kind,
+  entryDate
 }: {
   file: File;
   classId: string;
   userId: string;
   kind: "before" | "after";
+  entryDate?: string;
 }) {
   const supabase = createSupabaseAdminClient();
   const extension = getExtensionForMime(file.type);
-  const path = `classes/${classId}/students/${userId}/${kind}.${extension}`;
+  const path =
+    kind === "after" && entryDate
+      ? `classes/${classId}/students/${userId}/after/progress/${entryDate}.${extension}`
+      : `classes/${classId}/students/${userId}/${kind}.${extension}`;
   const { error } = await supabase.storage
     .from("submission-photos")
     .upload(path, file, {
       contentType: file.type,
-      upsert: true
+      upsert: kind === "after" && !entryDate
     });
 
   if (error) {

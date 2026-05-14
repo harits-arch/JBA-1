@@ -215,6 +215,27 @@ export interface Database {
           Database["public"]["Tables"]["post_test_submissions"]["Insert"]
         >;
       };
+      post_test_progress_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          class_id: string;
+          after_photo_path: string;
+          submitted_at: string;
+          entry_date: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          class_id: string;
+          after_photo_path: string;
+          submitted_at?: string;
+          entry_date: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["post_test_progress_entries"]["Insert"]
+        >;
+      };
       trainer_ratings: {
         Row: {
           id: string;

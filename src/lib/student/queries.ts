@@ -1,4 +1,9 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import {
+  buildPostTestProgressSummary,
+  type PostTestProgressSummary
+} from "@/lib/student/post-test-progress";
+import { resolveStudentActiveRegistration } from "@/lib/student/active-class";
 import type { Database } from "@/types/database";
 
 type ClassRow = Database["public"]["Tables"]["classes"]["Row"];
@@ -6,6 +11,8 @@ type RegistrationRow =
   Database["public"]["Tables"]["class_registrations"]["Row"];
 type PreTestRow = Database["public"]["Tables"]["pre_test_submissions"]["Row"];
 type PostTestRow = Database["public"]["Tables"]["post_test_submissions"]["Row"];
+type PostTestProgressRow =
+  Database["public"]["Tables"]["post_test_progress_entries"]["Row"];
 type TrainerRow = Database["public"]["Tables"]["trainers"]["Row"];
 
 export type StudentRegistrationWithClass = RegistrationRow & {
@@ -13,15 +20,19 @@ export type StudentRegistrationWithClass = RegistrationRow & {
 };
 
 export type StudentDashboardData = {
+  registrations: StudentRegistrationWithClass[];
   registration: StudentRegistrationWithClass | null;
   preTest: PreTestRow | null;
   postTest: PostTestRow | null;
+  postTestProgress: PostTestProgressRow[];
+  postTestSummary: PostTestProgressSummary | null;
   trainers: TrainerRow[];
   beforePhotoUrl: string | null;
   afterPhotoUrl: string | null;
+  latestProgressPhotoUrl: string | null;
 };
 
-export async function getStudentCurrentRegistration(userId: string) {
+export async function getStudentRegistrations(userId: string) {
   const supabase = createSupabaseAdminClient();
   const { data: registrations, error } = await supabase
     .from("class_registrations")
@@ -32,15 +43,27 @@ export async function getStudentCurrentRegistration(userId: string) {
     `
     )
     .eq("user_id", userId)
-    .order("registered_at", { ascending: false })
-    .limit(1);
+    .order("registered_at", { ascending: false });
 
   if (error) {
     throw error;
   }
 
-  return ((registrations ?? [])[0] ??
-    null) as unknown as StudentRegistrationWithClass | null;
+  return (registrations ?? []) as unknown as StudentRegistrationWithClass[];
+}
+
+/** @deprecated Use resolveStudentActiveRegistration from active-class.ts */
+export async function getStudentCurrentRegistration(userId: string) {
+  const registrations = await getStudentRegistrations(userId);
+  return registrations[0] ?? null;
+}
+
+export async function getStudentRegistrationForClass(
+  userId: string,
+  classId: string
+) {
+  const registrations = await getStudentRegistrations(userId);
+  return registrations.find((registration) => registration.class_id === classId) ?? null;
 }
 
 export async function getStudentPreTestSubmission(
@@ -81,6 +104,25 @@ export async function getStudentPostTestSubmission(
   return submission as PostTestRow | null;
 }
 
+export async function getStudentPostTestProgressEntries(
+  userId: string,
+  classId: string
+) {
+  const supabase = createSupabaseAdminClient();
+  const { data: entries, error } = await supabase
+    .from("post_test_progress_entries")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("class_id", classId)
+    .order("entry_date", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (entries ?? []) as PostTestProgressRow[];
+}
+
 export async function getClassTrainersForStudent(classId: string) {
   const supabase = createSupabaseAdminClient();
   const { data: trainers, error } = await supabase
@@ -100,37 +142,56 @@ export async function getClassTrainersForStudent(classId: string) {
 export async function getStudentDashboardData(
   userId: string
 ): Promise<StudentDashboardData> {
-  const registration = await getStudentCurrentRegistration(userId);
+  const registrations = await getStudentRegistrations(userId);
+  const registration = await resolveStudentActiveRegistration(userId);
 
   if (!registration?.classes) {
     return {
+      registrations,
       registration,
       preTest: null,
       postTest: null,
+      postTestProgress: [],
+      postTestSummary: null,
       trainers: [],
       beforePhotoUrl: null,
-      afterPhotoUrl: null
+      afterPhotoUrl: null,
+      latestProgressPhotoUrl: null
     };
   }
 
-  const [preTest, postTest, trainers] = await Promise.all([
+  const [preTest, postTest, postTestProgress, trainers] = await Promise.all([
     getStudentPreTestSubmission(userId, registration.class_id),
     getStudentPostTestSubmission(userId, registration.class_id),
+    getStudentPostTestProgressEntries(userId, registration.class_id),
     getClassTrainersForStudent(registration.class_id)
   ]);
 
-  const [beforePhotoUrl, afterPhotoUrl] = await Promise.all([
+  const postTestSummary = buildPostTestProgressSummary({
+    initialSubmission: postTest,
+    progressEntries: postTestProgress
+  });
+
+  const latestProgressPhotoPath =
+    postTestProgress[postTestProgress.length - 1]?.after_photo_path ?? null;
+
+  const [beforePhotoUrl, afterPhotoUrl, latestProgressPhotoUrl] = await Promise.all([
     createStudentPhotoUrl(preTest?.before_photo_path ?? null),
-    createStudentPhotoUrl(postTest?.after_photo_path ?? null)
+    createStudentPhotoUrl(postTest?.after_photo_path ?? null),
+    createStudentPhotoUrl(latestProgressPhotoPath)
   ]);
 
   return {
+    registrations,
     registration,
     preTest,
     postTest,
+    postTestProgress,
+    postTestSummary,
     trainers,
     beforePhotoUrl,
-    afterPhotoUrl
+    afterPhotoUrl,
+    latestProgressPhotoUrl
   };
 }
 

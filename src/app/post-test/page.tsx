@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 
 import { StudentLogoutButton } from "@/components/auth/student-logout-button";
 import { PostTestForm } from "@/components/student/post-test-form";
+import { PostTestProgressForm } from "@/components/student/post-test-progress-form";
+import { PostTestProgressRecap } from "@/components/student/post-test-progress-recap";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,10 +13,12 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { resolveStudentActiveRegistration } from "@/lib/student/active-class";
 import { requireStudentUser } from "@/lib/student/guards";
+import { buildPostTestProgressSummary } from "@/lib/student/post-test-progress";
 import {
   getClassTrainersForStudent,
-  getStudentCurrentRegistration,
+  getStudentPostTestProgressEntries,
   getStudentPostTestSubmission,
   getStudentPreTestSubmission
 } from "@/lib/student/queries";
@@ -23,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PostTestPage() {
   const user = await requireStudentUser();
-  const registration = await getStudentCurrentRegistration(user.id);
+  const registration = await resolveStudentActiveRegistration(user.id);
 
   if (!registration?.classes) {
     redirect("/student/dashboard");
@@ -38,40 +42,9 @@ export default async function PostTestPage() {
     redirect("/pre-test");
   }
 
-  const existingPostTest = await getStudentPostTestSubmission(
-    user.id,
-    registration.class_id
-  );
-
-  if (existingPostTest) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="w-full max-w-lg">
-        <Card className="w-full bg-white text-center">
-          <CardHeader>
-            <CardTitle>Post-Test Sudah Terkirim</CardTitle>
-            <CardDescription>
-              Terima kasih. JBA sudah menerima feedback akhir dan foto AFTER kamu.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="secondary">
-              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
-            </Button>
-          </CardContent>
-        </Card>
-          <div className="mt-6 flex justify-center">
-            <StudentLogoutButton />
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   if (!registration.classes.post_test_open) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="w-full max-w-lg">
+      <PostTestShell>
         <Card className="w-full bg-white text-center">
           <CardHeader>
             <CardTitle>Post-Test Belum Dibuka</CardTitle>
@@ -86,58 +59,105 @@ export default async function PostTestPage() {
             </Button>
           </CardContent>
         </Card>
-          <div className="mt-6 flex justify-center">
-            <StudentLogoutButton />
-          </div>
-        </div>
-      </main>
+      </PostTestShell>
     );
   }
 
-  const trainers = await getClassTrainersForStudent(registration.class_id);
+  const [existingPostTest, progressEntries, trainers] = await Promise.all([
+    getStudentPostTestSubmission(user.id, registration.class_id),
+    getStudentPostTestProgressEntries(user.id, registration.class_id),
+    getClassTrainersForStudent(registration.class_id)
+  ]);
 
-  if (trainers.length === 0) {
+  if (!existingPostTest) {
+    if (trainers.length === 0) {
+      return (
+        <PostTestShell>
+          <Card className="w-full bg-white text-center">
+            <CardHeader>
+              <CardTitle>Setup Post-Test Belum Lengkap</CardTitle>
+              <CardDescription>
+                Rating trainer belum siap. Mohon minta tim JBA menambahkan trainer
+                untuk kelas ini.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="secondary">
+                <Link href="/student/dashboard">Kembali ke Dashboard</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </PostTestShell>
+      );
+    }
+
     return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="w-full max-w-lg">
-        <Card className="w-full bg-white text-center">
+      <PostTestShell wide>
+        <Card className="bg-white">
           <CardHeader>
-            <CardTitle>Setup Post-Test Belum Lengkap</CardTitle>
+            <CardTitle>Post-Test (Pertama)</CardTitle>
             <CardDescription>
-              Rating trainer belum siap. Mohon minta tim JBA menambahkan trainer
-              untuk kelas ini.
+              {registration.classes.client_name} -{" "}
+              {registration.classes.class_code}. Submission pertama membutuhkan
+              form lengkap + foto AFTER.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild variant="secondary">
-              <Link href="/student/dashboard">Kembali ke Dashboard</Link>
-            </Button>
+            <PostTestForm classId={registration.class_id} trainers={trainers} />
           </CardContent>
         </Card>
-          <div className="mt-6 flex justify-center">
-            <StudentLogoutButton />
-          </div>
-        </div>
-      </main>
+      </PostTestShell>
     );
   }
 
+  const summary = buildPostTestProgressSummary({
+    initialSubmission: existingPostTest,
+    progressEntries
+  });
+
   return (
-    <main className="min-h-screen px-4 py-10">
-      <Card className="mx-auto max-w-3xl bg-white">
+    <PostTestShell wide>
+      <Card className="bg-white">
         <CardHeader>
-          <CardTitle>Post-Test</CardTitle>
+          <CardTitle>Post-Test Progress</CardTitle>
           <CardDescription>
-            {registration.classes.client_name} -{" "}
-            {registration.classes.class_code}
+            {registration.classes.client_name} - {registration.classes.class_code}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <PostTestForm classId={registration.class_id} trainers={trainers} />
+        <CardContent className="space-y-8">
+          <PostTestProgressRecap
+            summary={summary}
+            initialSubmittedAt={existingPostTest.submitted_at}
+            progressEntries={progressEntries}
+          />
+
+          {summary.canSubmitToday ? (
+            <PostTestProgressForm classId={registration.class_id} />
+          ) : null}
+
+          <Button asChild variant="secondary" className="w-full sm:w-auto">
+            <Link href="/student/dashboard">Kembali ke Dashboard</Link>
+          </Button>
         </CardContent>
       </Card>
-      <div className="mx-auto mt-6 flex max-w-3xl justify-center">
-        <StudentLogoutButton />
+    </PostTestShell>
+  );
+}
+
+function PostTestShell({
+  children,
+  wide = false
+}: {
+  children: React.ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <main className="min-h-screen px-4 py-10">
+      <div className={wide ? "mx-auto max-w-3xl space-y-6" : "mx-auto max-w-lg space-y-6"}>
+        {children}
+        <div className="flex justify-center">
+          <StudentLogoutButton />
+        </div>
       </div>
     </main>
   );

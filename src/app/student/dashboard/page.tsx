@@ -18,7 +18,9 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { StudentLogoutButton } from "@/components/auth/student-logout-button";
+import { StudentClassSwitcher } from "@/components/student/student-class-switcher";
 import { requireStudentUser } from "@/lib/student/guards";
+import type { PostTestProgressSummary } from "@/lib/student/post-test-progress";
 import { getStudentDashboardData } from "@/lib/student/queries";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,7 @@ export default async function StudentDashboardPage() {
     hasRegistration: Boolean(dashboard.registration?.classes),
     hasPreTest: Boolean(dashboard.preTest),
     postTestOpen: Boolean(dashboard.registration?.classes?.post_test_open),
-    hasPostTest: Boolean(dashboard.postTest)
+    postTestSummary: dashboard.postTestSummary
   });
   const displayName = user.full_name?.split(" ")[0] ?? "Student";
 
@@ -171,11 +173,31 @@ export default async function StudentDashboardPage() {
           </CardContent>
         </Card>
 
+        {dashboard.registrations.length > 0 ? (
+          <Card className="border-accent/30 bg-white/90">
+            <CardHeader>
+              <CardTitle>Semua Kelas Saya</CardTitle>
+              <CardDescription>
+                Pilih kelas aktif untuk melihat progress, pre-test, dan post-test.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <StudentClassSwitcher
+                registrations={dashboard.registrations}
+                activeClassId={dashboard.registration?.class_id ?? null}
+              />
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/class/register">Ikut Kelas Lain</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <ActionCard
           hasRegistration={Boolean(dashboard.registration?.classes)}
           hasPreTest={Boolean(dashboard.preTest)}
           postTestOpen={Boolean(dashboard.registration?.classes?.post_test_open)}
-          hasPostTest={Boolean(dashboard.postTest)}
+          postTestSummary={dashboard.postTestSummary}
         />
 
         <Card className="border-accent/30 bg-white/90">
@@ -190,7 +212,10 @@ export default async function StudentDashboardPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-3">
             <PhotoFrame label="Before" src={dashboard.beforePhotoUrl} />
-            <PhotoFrame label="After" src={dashboard.afterPhotoUrl} />
+            <PhotoFrame
+              label="After"
+              src={dashboard.latestProgressPhotoUrl ?? dashboard.afterPhotoUrl}
+            />
           </CardContent>
         </Card>
 
@@ -206,12 +231,12 @@ function ActionCard({
   hasRegistration,
   hasPreTest,
   postTestOpen,
-  hasPostTest
+  postTestSummary
 }: {
   hasRegistration: boolean;
   hasPreTest: boolean;
   postTestOpen: boolean;
-  hasPostTest: boolean;
+  postTestSummary: PostTestProgressSummary | null;
 }) {
   if (!hasRegistration) {
     return (
@@ -229,13 +254,38 @@ function ActionCard({
     );
   }
 
-  if (hasPostTest) {
+  if (postTestSummary?.isComplete) {
     return (
       <div className="rounded-3xl border border-accent/40 bg-white/90 p-5 text-center">
         <Badge variant="success">Selesai</Badge>
         <p className="mt-3 font-semibold text-primary">
-          Terima kasih, transformasi kamu sudah lengkap.
+          Terima kasih, 14 kali submission Post-Test kamu sudah lengkap.
         </p>
+      </div>
+    );
+  }
+
+  if (postTestSummary && postTestSummary.totalSubmissions > 0) {
+    return (
+      <div className="space-y-3 rounded-3xl border border-accent/40 bg-white/90 p-5 text-center">
+        <Badge variant="secondary">
+          {postTestSummary.totalSubmissions}/{postTestSummary.maxSubmissions}
+        </Badge>
+        <p className="font-semibold text-primary">
+          Lanjutkan foto progress Post-Test harian kamu.
+        </p>
+        <Button
+          asChild
+          className="w-full bg-accent text-accent-foreground shadow-soft hover:bg-accent/90"
+          size="lg"
+        >
+          <Link href="/post-test">
+            <Star className="h-4 w-4" />
+            {postTestSummary.canSubmitToday
+              ? "Kirim Foto Progress Hari Ini"
+              : "Lihat Progress Post-Test"}
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -293,12 +343,12 @@ function getActiveStep({
   hasRegistration,
   hasPreTest,
   postTestOpen,
-  hasPostTest
+  postTestSummary
 }: {
   hasRegistration: boolean;
   hasPreTest: boolean;
   postTestOpen: boolean;
-  hasPostTest: boolean;
+  postTestSummary: PostTestProgressSummary | null;
 }) {
   if (!hasRegistration) {
     return 0;
@@ -308,8 +358,16 @@ function getActiveStep({
     return 1;
   }
 
-  if (!postTestOpen || !hasPostTest) {
-    return postTestOpen ? 3 : 2;
+  if (!postTestOpen) {
+    return 2;
+  }
+
+  if (!postTestSummary || postTestSummary.totalSubmissions === 0) {
+    return 3;
+  }
+
+  if (!postTestSummary.isComplete) {
+    return 3;
   }
 
   return 3;

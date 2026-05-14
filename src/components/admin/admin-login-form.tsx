@@ -26,7 +26,7 @@ export function AdminLoginForm() {
         <Input
           id="username"
           name="username"
-          placeholder="admin"
+          placeholder="Username admin"
           autoComplete="username"
           defaultValue={values.username ?? ""}
         />
@@ -38,7 +38,7 @@ export function AdminLoginForm() {
           id="password"
           name="password"
           type="password"
-          placeholder="2026"
+          placeholder="Password"
           autoComplete="current-password"
         />
       </div>

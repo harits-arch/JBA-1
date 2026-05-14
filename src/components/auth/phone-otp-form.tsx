@@ -7,6 +7,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   passwordLoginAction,
   sendRegistrationOtpAction,
@@ -70,10 +71,9 @@ export function PhoneOtpForm() {
           />
           <div className="space-y-2">
             <Label htmlFor="login-password">Password</Label>
-            <Input
+            <PasswordInput
               id="login-password"
               name="password"
-              type="password"
               placeholder="Password kamu"
               autoComplete="current-password"
               defaultValue={loginState.values?.password ?? ""}
@@ -104,10 +104,9 @@ export function PhoneOtpForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="register-password">Password Baru</Label>
-                <Input
+                <PasswordInput
                   id="register-password"
                   name="password"
-                  type="password"
                   placeholder="Minimal 8 karakter"
                   autoComplete="new-password"
                   defaultValue={verifyState.values?.password ?? ""}
@@ -117,10 +116,9 @@ export function PhoneOtpForm() {
                 <Label htmlFor="register-confirm-password">
                   Konfirmasi Password
                 </Label>
-                <Input
+                <PasswordInput
                   id="register-confirm-password"
                   name="confirmPassword"
-                  type="password"
                   placeholder="Ulangi password"
                   autoComplete="new-password"
                   defaultValue={verifyState.values?.confirmPassword ?? ""}

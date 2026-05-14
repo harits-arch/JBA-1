@@ -9,11 +9,9 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { resolveStudentActiveRegistration } from "@/lib/student/active-class";
 import { requireStudentUser } from "@/lib/student/guards";
-import {
-  getStudentCurrentRegistration,
-  getStudentPreTestSubmission
-} from "@/lib/student/queries";
+import { getStudentPreTestSubmission } from "@/lib/student/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +22,7 @@ export default async function PreTestPage() {
     redirect("/onboarding");
   }
 
-  const registration = await getStudentCurrentRegistration(user.id);
+  const registration = await resolveStudentActiveRegistration(user.id);
 
   if (!registration?.classes) {
     redirect("/student/dashboard");

@@ -51,6 +51,13 @@ export type AdminPostTestSubmission = PostTestRow & {
   >;
 };
 
+type PostTestProgressRow =
+  Database["public"]["Tables"]["post_test_progress_entries"]["Row"];
+
+export type AdminPostTestProgressEntry = PostTestProgressRow & {
+  users: AdminSubmissionStudent | null;
+};
+
 export async function getAdminDashboardStats() {
   const supabase = createSupabaseAdminClient();
   const [
@@ -199,7 +206,8 @@ export async function getClassSubmissions(classId: string) {
   const supabase = createSupabaseAdminClient();
   const [
     { data: preTests, error: preTestError },
-    { data: postTests, error: postTestError }
+    { data: postTests, error: postTestError },
+    { data: progressEntries, error: progressError }
   ] = await Promise.all([
     supabase
       .from("pre_test_submissions")
@@ -238,10 +246,27 @@ export async function getClassSubmissions(classId: string) {
       `
       )
       .eq("class_id", classId)
-      .order("submitted_at", { ascending: false })
+      .order("submitted_at", { ascending: false }),
+    supabase
+      .from("post_test_progress_entries")
+      .select(
+        `
+        *,
+        users(
+          id,
+          full_name,
+          phone,
+          email,
+          gender,
+          instagram_username
+        )
+      `
+      )
+      .eq("class_id", classId)
+      .order("entry_date", { ascending: true })
   ]);
 
-  const error = preTestError ?? postTestError;
+  const error = preTestError ?? postTestError ?? progressError;
 
   if (error) {
     throw error;
@@ -249,7 +274,9 @@ export async function getClassSubmissions(classId: string) {
 
   return {
     preTests: (preTests ?? []) as unknown as AdminPreTestSubmission[],
-    postTests: (postTests ?? []) as unknown as AdminPostTestSubmission[]
+    postTests: (postTests ?? []) as unknown as AdminPostTestSubmission[],
+    progressEntries: (progressEntries ??
+      []) as unknown as AdminPostTestProgressEntry[]
   };
 }
 
